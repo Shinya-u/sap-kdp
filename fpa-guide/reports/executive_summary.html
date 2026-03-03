@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Executive Summary - FY2026 February</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f5f5; color: #333; padding: 26px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  
+  .header { background: #1a365d; color: white; padding: 26px 30px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+  .header h1 { font-size: 28px; font-weight: 600; }
+  .header .period { font-size: 20px; opacity: 0.8; }
+  .header .status { background: #e53e3e; padding: 4px 12px; border-radius: 4px; font-size: 18px; font-weight: bold; }
+  
+  /* KPI Cards */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 20px; }
+  .kpi-card { background: white; padding: 24px; border-radius: 6px; border-left: 4px solid #ccc; }
+  .kpi-card.good { border-left-color: #38a169; }
+  .kpi-card.bad { border-left-color: #e53e3e; }
+  .kpi-card.warn { border-left-color: #d69e2e; }
+  .kpi-label { font-size: 16px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .kpi-value { font-size: 38px; font-weight: 700; }
+  .kpi-sub { font-size: 18px; margin-top: 4px; }
+  .kpi-sub.pos { color: #38a169; }
+  .kpi-sub.neg { color: #e53e3e; }
+  
+  /* Main content grid */
+  .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .full-width { grid-column: 1 / -1; }
+  
+  .panel { background: white; border-radius: 6px; padding: 26px; }
+  .panel h2 { font-size: 20px; font-weight: 700; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px; }
+  
+  /* P&L Table */
+  table { width: 100%; border-collapse: collapse; font-size: 18px; }
+  th { text-align: left; padding: 10px 12px; background: #f7fafc; color: #666; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; }
+  td.num { text-align: right; font-family: 'Consolas', monospace; }
+  td.neg { color: #e53e3e; }
+  td.pos { color: #38a169; }
+  tr.subtotal { font-weight: 700; background: #f7fafc; }
+  tr.subtotal td { border-top: 2px solid #cbd5e0; }
+  tr.total { font-weight: 700; background: #edf2f7; }
+  tr.total td { border-top: 2px solid #1a365d; }
+  
+  /* Segment bars */
+  .seg-row { display: flex; align-items: center; margin-bottom: 10px; }
+  .seg-label { width: 100px; font-size: 18px; font-weight: 600; }
+  .seg-bar-bg { flex: 1; height: 24px; background: #e2e8f0; border-radius: 3px; position: relative; overflow: hidden; }
+  .seg-bar { height: 100%; border-radius: 3px; display: flex; align-items: center; padding-left: 8px; font-size: 16px; color: white; font-weight: 600; }
+  .seg-bar.good { background: #38a169; }
+  .seg-bar.warn { background: #d69e2e; }
+  .seg-bar.bad { background: #e53e3e; }
+  .seg-value { width: 100px; text-align: right; font-size: 18px; font-family: 'Consolas', monospace; margin-left: 10px; }
+  
+  /* Alert list */
+  .alert-item { padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-size: 18px; display: flex; align-items: flex-start; gap: 8px; }
+  .alert-item.red { background: #fff5f5; border-left: 3px solid #e53e3e; }
+  .alert-item.yellow { background: #fffff0; border-left: 3px solid #d69e2e; }
+  .alert-item.green { background: #f0fff4; border-left: 3px solid #38a169; }
+  .alert-icon { font-size: 20px; }
+  
+  /* Forecast landing */
+  .landing-row { display: flex; align-items: center; margin-bottom: 8px; font-size: 18px; }
+  .landing-label { width: 80px; }
+  .landing-bar-container { flex: 1; display: flex; align-items: center; gap: 8px; }
+  .landing-bar-bg { flex: 1; height: 16px; background: #e2e8f0; border-radius: 3px; position: relative; }
+  .landing-bar { height: 100%; border-radius: 3px; }
+  .landing-bar.budget { background: #a0aec0; }
+  .landing-bar.actual { background: #3182ce; }
+  .landing-bar.forecast { background: #63b3ed; border-right: 2px dashed #2b6cb0; }
+  .landing-val { width: 60px; text-align: right; font-family: 'Consolas', monospace; font-size: 16px; }
+  
+  .footnote { font-size: 14px; color: #999; margin-top: 15px; text-align: right; }
+  
+  /* Commentary */
+  .commentary { font-size: 18px; line-height: 1.8; }
+  .commentary li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <h1>Monthly Executive Summary</h1>
+    <div class="period">FY2026 | February 2026 (YTD: Jun 2025 - Feb 2026)</div>
+  </div>
+  <div class="status">⚠ BELOW PLAN 計画未達</div>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-row">
+  <div class="kpi-card bad">
+    <div class="kpi-label">Revenue (YTD) 売上高（累計）</div>
+    <div class="kpi-value">¥38.2B</div>
+    <div class="kpi-sub neg">▼ 4.2% vs 予算 | ▲ 2.1% vs 前年</div>
+  </div>
+  <div class="kpi-card bad">
+    <div class="kpi-label">Operating Profit (YTD) 営業利益（累計）</div>
+    <div class="kpi-value">¥3.1B</div>
+    <div class="kpi-sub neg">▼ 12.8% vs 予算 | ▼ 5.3% vs 前年</div>
+  </div>
+  <div class="kpi-card warn">
+    <div class="kpi-label">OP Margin 営業利益率</div>
+    <div class="kpi-value">8.1%</div>
+    <div class="kpi-sub neg">予算: 8.9% | 前年: 8.8%</div>
+  </div>
+  <div class="kpi-card good">
+    <div class="kpi-label">FCF (YTD) フリーキャッシュフロー（累計）</div>
+    <div class="kpi-value">¥2.4B</div>
+    <div class="kpi-sub pos">▲ 18.5% vs 予算 (設備投資遅延)</div>
+  </div>
+</div>
+
+<div class="content-grid">
+
+  <!-- Consolidated P&L -->
+  <div class="panel full-width">
+    <h2>Consolidated P&L Summary 連結損益サマリー (単位: 百万円)</h2>
+    <table>
+      <tr>
+        <th style="width:25%"></th>
+        <th class="num" style="width:10%">当月実績</th>
+        <th class="num" style="width:10%">当月予算</th>
+        <th class="num" style="width:10%">差異</th>
+        <th class="num" style="width:5%">%</th>
+        <th class="num" style="width:10%">累計実績</th>
+        <th class="num" style="width:10%">累計予算</th>
+        <th class="num" style="width:10%">差異</th>
+        <th class="num" style="width:5%">%</th>
+      </tr>
+      <tr>
+        <td><strong>Revenue 売上高</strong></td>
+        <td class="num">4,280</td>
+        <td class="num">4,520</td>
+        <td class="num neg">△240</td>
+        <td class="num neg">-5.3%</td>
+        <td class="num">38,200</td>
+        <td class="num">39,880</td>
+        <td class="num neg">△1,680</td>
+        <td class="num neg">-4.2%</td>
+      </tr>
+      <tr>
+        <td>&nbsp;&nbsp;Material Cost 材料費</td>
+        <td class="num">1,712</td>
+        <td class="num">1,808</td>
+        <td class="num pos">96</td>
+        <td class="num"></td>
+        <td class="num">15,280</td>
+        <td class="num">15,552</td>
+        <td class="num pos">272</td>
+        <td class="num"></td>
+      </tr>
+      <tr>
+        <td>&nbsp;&nbsp;Labor Cost 労務費</td>
+        <td class="num">642</td>
+        <td class="num">633</td>
+        <td class="num neg">△9</td>
+        <td class="num"></td>
+        <td class="num">5,730</td>
+        <td class="num">5,684</td>
+        <td class="num neg">△46</td>
+        <td class="num"></td>
+      </tr>
+      <tr>
+        <td>&nbsp;&nbsp;Manufacturing OH 製造間接費</td>
+        <td class="num">856</td>
+        <td class="num">814</td>
+        <td class="num neg">△42</td>
+        <td class="num"></td>
+        <td class="num">7,640</td>
+        <td class="num">7,306</td>
+        <td class="num neg">△334</td>
+        <td class="num"></td>
+      </tr>
+      <tr class="subtotal">
+        <td>Gross Profit 売上総利益</td>
+        <td class="num">1,070</td>
+        <td class="num">1,265</td>
+        <td class="num neg">△195</td>
+        <td class="num neg">-15.4%</td>
+        <td class="num">9,550</td>
+        <td class="num">11,338</td>
+        <td class="num neg">△1,788</td>
+        <td class="num neg">-15.8%</td>
+      </tr>
+      <tr>
+        <td>&nbsp;&nbsp;SG&A 販売管理費</td>
+        <td class="num">720</td>
+        <td class="num">745</td>
+        <td class="num pos">25</td>
+        <td class="num"></td>
+        <td class="num">6,450</td>
+        <td class="num">6,700</td>
+        <td class="num pos">250</td>
+        <td class="num"></td>
+      </tr>
+      <tr class="total">
+        <td>Operating Profit 営業利益</td>
+        <td class="num">350</td>
+        <td class="num">520</td>
+        <td class="num neg">△170</td>
+        <td class="num neg">-32.7%</td>
+        <td class="num">3,100</td>
+        <td class="num">4,638</td>
+        <td class="num neg">△1,538</td>
+        <td class="num neg">-33.2%</td>
+      </tr>
+      <tr>
+        <td>&nbsp;&nbsp;EBITDA 償却前営業利益</td>
+        <td class="num">680</td>
+        <td class="num">850</td>
+        <td class="num neg">△170</td>
+        <td class="num neg">-20.0%</td>
+        <td class="num">6,060</td>
+        <td class="num">7,598</td>
+        <td class="num neg">△1,538</td>
+        <td class="num neg">-20.2%</td>
+      </tr>
+    </table>
+    <div class="footnote">※ EBITDA = 営業利益 + 減価償却費 ¥2,960M (累計)</div>
+  </div>
+
+  <!-- Segment Performance -->
+  <div class="panel">
+    <h2>Segment Performance セグメント別営業利益率 (YTD累計)</h2>
+    <div style="margin-bottom:15px;">
+      <div class="seg-row">
+        <div class="seg-label">電子部品</div>
+        <div class="seg-bar-bg"><div class="seg-bar good" style="width:72%">10.8%</div></div>
+        <div class="seg-value">¥1,620M</div>
+      </div>
+      <div class="seg-row">
+        <div class="seg-label">車載</div>
+        <div class="seg-bar-bg"><div class="seg-bar warn" style="width:47%">7.1%</div></div>
+        <div class="seg-value">¥980M</div>
+      </div>
+      <div class="seg-row">
+        <div class="seg-label">産業機器</div>
+        <div class="seg-bar-bg"><div class="seg-bar warn" style="width:40%">6.0%</div></div>
+        <div class="seg-value">¥540M</div>
+      </div>
+      <div class="seg-row">
+        <div class="seg-label">新規事業</div>
+        <div class="seg-bar-bg"><div class="seg-bar bad" style="width:10%">-2.1%</div></div>
+        <div class="seg-value neg">△40M</div>
+      </div>
+    </div>
+    <div style="font-size: 16px; color:#888;">予算OP Margin: 電子部品 11.2% | 車載 8.5% | 産業機器 7.2% | 新規 -1.5%</div>
+  </div>
+
+  <!-- Key Alerts -->
+  <div class="panel">
+    <h2>Key Alerts & Action Items 重要アラートとアクション</h2>
+    <div class="alert-item red">
+      <span class="alert-icon">🔴</span>
+      <div><strong>車載セグメント粗利悪化</strong> - 原材料高騰（銅+12% YoY）が直撃。価格転嫁が追いついていない。Q4での価格改定交渉を前倒し要請中。</div>
+    </div>
+    <div class="alert-item red">
+      <span class="alert-icon">🔴</span>
+      <div><strong>製造OH予算超過 △334M</strong> - 老朽設備の修繕費増加（計画外）。3月以降も月40M程度の超過見込み。</div>
+    </div>
+    <div class="alert-item yellow">
+      <span class="alert-icon">🟡</span>
+      <div><strong>売上未達 △1,680M (YTD)</strong> - 主因は車載の中国市場減速。電子部品は計画比+2%で堅調。</div>
+    </div>
+    <div class="alert-item green">
+      <span class="alert-icon">🟢</span>
+      <div><strong>FCF好調 +18.5%</strong> - CAPEX執行遅延による一時的要因。設備投資計画の前倒し検討を推奨。</div>
+    </div>
+  </div>
+
+  <!-- Forecast Landing -->
+  <div class="panel">
+    <h2>Full Year Forecast Landing 通期着地見込み</h2>
+    <table style="margin-bottom:15px;">
+      <tr>
+        <th></th>
+        <th class="num">予算</th>
+        <th class="num">着地見込</th>
+        <th class="num">差異</th>
+      </tr>
+      <tr>
+        <td>Revenue 売上高</td>
+        <td class="num">¥53,200M</td>
+        <td class="num">¥51,400M</td>
+        <td class="num neg">△1,800M</td>
+      </tr>
+      <tr>
+        <td>Operating Profit 営業利益</td>
+        <td class="num">¥5,320M</td>
+        <td class="num">¥4,200M</td>
+        <td class="num neg">△1,120M</td>
+      </tr>
+      <tr>
+        <td>OP Margin 営業利益率</td>
+        <td class="num">10.0%</td>
+        <td class="num">8.2%</td>
+        <td class="num neg">-1.8pt</td>
+      </tr>
+      <tr>
+        <td>FCF フリーキャッシュフロー</td>
+        <td class="num">¥3,200M</td>
+        <td class="num">¥3,500M</td>
+        <td class="num pos">+300M</td>
+      </tr>
+    </table>
+    <div style="font-size: 16px; color:#e53e3e; font-weight:600;">⚠ 営業利益着地見込み △1,120M (▼21.1%) - 車載セグメントの回復シナリオ次第</div>
+  </div>
+
+  <!-- Management Commentary -->
+  <div class="panel">
+    <h2>CFO Commentary CFO所見（要約）</h2>
+    <div class="commentary">
+      <ul style="padding-left:18px;">
+        <li><strong>売上</strong>：車載の中国向け▼が主因。下期回復の前提は楽観的すぎる可能性。Forecast見直し要。</li>
+        <li><strong>粗利</strong>：原材料高騰の影響が想定以上。銅・アルミの市況次第で更に悪化リスク。</li>
+        <li><strong>販管費</strong>：採用凍結・出張抑制で250M削減。これ以上の削減は事業成長に影響。</li>
+        <li><strong>FCF</strong>：見かけ上好調だがCAPEX遅延が主因。本質的な改善ではない点に注意。</li>
+        <li><strong>アクション</strong>：①車載の価格改定前倒し ②製造OH削減プラン策定 ③下期Forecast再精査</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<div class="footnote" style="margin-top:10px;">Confidential 社外秘 | Prepared by FP&A Division 経営企画部作成 | Reporting Date: 2026年3月5日 | Next Review: 4月取締役会</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Layer 2 - Business Unit Monthly Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #2d3748; padding: 26px; font-size: 19px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* Header */
+  .header { background: linear-gradient(135deg, #1a365d 0%, #2c5282 100%); color: white; padding: 26px 30px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; }
+  .header-left h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .header-left .subtitle { font-size: 18px; opacity: 0.7; }
+  .header-right { text-align: right; }
+  .header-right .segment-name { font-size: 22px; font-weight: 700; }
+  .header-right .segment-sub { font-size: 16px; opacity: 0.7; }
+
+  /* Status banner */
+  .status-banner { background: #fff5f5; border: 1px solid #feb2b2; border-radius: 6px; padding: 12px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .status-banner .icon { font-size: 24px; }
+  .status-banner .text { font-size: 18px; color: #c53030; }
+  .status-banner .text strong { font-size: 19px; }
+
+  /* Grid layouts */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .full { grid-column: 1 / -1; }
+
+  /* Panels */
+  .panel { background: white; border-radius: 6px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .panel h2 { font-size: 19px; font-weight: 700; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .panel h2 .badge { font-size: 14px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .badge-red { background: #fff5f5; color: #c53030; }
+  .badge-green { background: #f0fff4; color: #276749; }
+  .badge-yellow { background: #fffff0; color: #975a16; }
+
+  /* Mini KPI row */
+  .mini-kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+  .mini-kpi { background: white; border-radius: 6px; padding: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-top: 3px solid #cbd5e0; text-align: center; }
+  .mini-kpi.red { border-top-color: #e53e3e; }
+  .mini-kpi.green { border-top-color: #38a169; }
+  .mini-kpi.yellow { border-top-color: #d69e2e; }
+  .mini-kpi .label { font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .mini-kpi .value { font-size: 22px; font-weight: 700; }
+  .mini-kpi .sub { font-size: 14px; margin-top: 2px; }
+  .mini-kpi .sub.neg { color: #e53e3e; }
+  .mini-kpi .sub.pos { color: #38a169; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 18px; }
+  th { text-align: left; padding: 5px 6px; background: #f7fafc; color: #666; font-weight: 600; border-bottom: 1px solid #e2e8f0; font-size: 16px; }
+  th.num { text-align: right; }
+  td { padding: 5px 6px; border-bottom: 1px solid #f0f0f0; }
+  td.num { text-align: right; font-family: 'Consolas', 'Courier New', monospace; }
+  td.neg { color: #e53e3e; }
+  td.pos { color: #38a169; }
+  td.indent { padding-left: 20px; }
+  td.indent2 { padding-left: 36px; color: #666; }
+  tr.section-header td { font-weight: 700; background: #f7fafc; padding-top: 8px; }
+  tr.subtotal { font-weight: 600; }
+  tr.subtotal td { border-top: 1px solid #cbd5e0; background: #fafbfc; }
+  tr.total { font-weight: 700; }
+  tr.total td { border-top: 2px solid #1a365d; background: #edf2f7; }
+  tr.total2 { font-weight: 700; }
+  tr.total2 td { border-top: 2px solid #2c5282; background: #ebf8ff; }
+
+  /* Variance bar */
+  .var-bar-cell { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+  .var-bar { height: 10px; border-radius: 2px; min-width: 2px; }
+  .var-bar.neg { background: #fc8181; }
+  .var-bar.pos { background: #68d391; }
+
+  /* Commentary section */
+  .comment-list { list-style: none; }
+  .comment-list li { padding: 8px 10px; margin-bottom: 4px; font-size: 18px; line-height: 1.6; border-left: 3px solid #e2e8f0; }
+  .comment-list li.issue { border-left-color: #e53e3e; background: #fff5f5; }
+  .comment-list li.action { border-left-color: #3182ce; background: #ebf8ff; }
+  .comment-list li.positive { border-left-color: #38a169; background: #f0fff4; }
+  .comment-tag { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; display: block; }
+  .comment-tag.issue { color: #c53030; }
+  .comment-tag.action { color: #2b6cb0; }
+  .comment-tag.positive { color: #276749; }
+
+  /* Product matrix */
+  .product-table th { text-align: center; }
+  .product-table th:first-child { text-align: left; }
+  .product-table td.num { text-align: center; }
+
+  /* Waterfall chart (CSS only) */
+  .waterfall { display: flex; align-items: flex-end; gap: 2px; height: 120px; padding: 10px 0; justify-content: center; }
+  .wf-col { display: flex; flex-direction: column; align-items: center; width: 80px; }
+  .wf-bar-area { height: 100px; display: flex; flex-direction: column; justify-content: flex-end; position: relative; width: 100%; }
+  .wf-bar { width: 70%; margin: 0 auto; border-radius: 2px 2px 0 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 3px; font-size: 9px; font-weight: 600; color: white; min-height: 16px; }
+  .wf-bar.base { background: #4a5568; }
+  .wf-bar.neg { background: #e53e3e; }
+  .wf-bar.pos { background: #38a169; }
+  .wf-bar.result { background: #2c5282; }
+  .wf-label { font-size: 9px; color: #666; text-align: center; margin-top: 4px; line-height: 1.2; }
+  .wf-connector { border-top: 1px dashed #cbd5e0; position: absolute; width: 130%; right: -65%; top: 0; }
+
+  .footnote { font-size: 14px; color: #999; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1>Business Unit Monthly Report 事業部月次報告</h1>
+    <div class="subtitle">FY2026 | 2026年2月度 (YTD累計: 2025年6月 - 2026年2月)</div>
+  </div>
+  <div class="header-right">
+    <div class="segment-name">車載事業部</div>
+    <div class="segment-sub">Automotive Segment</div>
+  </div>
+</div>
+
+<!-- Status Banner -->
+<div class="status-banner">
+  <span class="icon">⚠️</span>
+  <div class="text">
+    <strong>営業利益 YTD △320M (予算比▼24.6%) </strong>
+    — 主因：原材料高騰（銅+12% YoY）による粗利悪化 + 中国市場の売上減速
+  </div>
+</div>
+
+<!-- Mini KPI Row -->
+<div class="mini-kpi-row">
+  <div class="mini-kpi red">
+    <div class="label">売上高 Revenue YTD</div>
+    <div class="value">¥13.8B</div>
+    <div class="sub neg">▼6.2% vs予算 | ▼2.8% vs前年</div>
+  </div>
+  <div class="mini-kpi red">
+    <div class="label">売上総利益 Gross Profit</div>
+    <div class="value">¥3.17B</div>
+    <div class="sub neg">粗利率 23.0% (予算25.8%)</div>
+  </div>
+  <div class="mini-kpi red">
+    <div class="label">営業利益 OP</div>
+    <div class="value">¥980M</div>
+    <div class="sub neg">▼24.6% vs予算 | OP率 7.1%</div>
+  </div>
+  <div class="mini-kpi yellow">
+    <div class="label">受注残 Backlog</div>
+    <div class="value">¥8.2B</div>
+    <div class="sub neg">▼8.5% vs前年</div>
+  </div>
+  <div class="mini-kpi green">
+    <div class="label">在庫回転 Inventory Turn</div>
+    <div class="value">6.2回</div>
+    <div class="sub pos">目標6.0回達成</div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- P&L Detail -->
+  <div class="panel full">
+    <h2>損益計算書 P&L - Budget vs Actual 予実対比 (単位: 百万円)
+      <span class="badge badge-red">予算未達</span>
+    </h2>
+    <table>
+      <tr>
+        <th style="width:24%"></th>
+        <th class="num" style="width:8%">当月実績</th>
+        <th class="num" style="width:8%">当月予算</th>
+        <th class="num" style="width:8%">差異</th>
+        <th class="num" style="width:6%">差異%</th>
+        <th class="num" style="width:8%">累計実績</th>
+        <th class="num" style="width:8%">累計予算</th>
+        <th class="num" style="width:8%">差異</th>
+        <th class="num" style="width:6%">差異%</th>
+        <th class="num" style="width:8%">前年累計</th>
+        <th class="num" style="width:6%">前年比</th>
+      </tr>
+
+      <!-- Revenue -->
+      <tr class="section-header"><td colspan="11">売上高 Revenue</td></tr>
+      <tr>
+        <td class="indent">国内 Domestic</td>
+        <td class="num">620</td><td class="num">640</td>
+        <td class="num neg">△20</td><td class="num neg">-3.1%</td>
+        <td class="num">5,520</td><td class="num">5,760</td>
+        <td class="num neg">△240</td><td class="num neg">-4.2%</td>
+        <td class="num">5,400</td><td class="num pos">+2.2%</td>
+      </tr>
+      <tr>
+        <td class="indent">中国 China</td>
+        <td class="num">380</td><td class="num">480</td>
+        <td class="num neg">△100</td><td class="num neg">-20.8%</td>
+        <td class="num">3,600</td><td class="num">4,320</td>
+        <td class="num neg">△720</td><td class="num neg">-16.7%</td>
+        <td class="num">4,100</td><td class="num neg">-12.2%</td>
+      </tr>
+      <tr>
+        <td class="indent">北米 North America</td>
+        <td class="num">280</td><td class="num">290</td>
+        <td class="num neg">△10</td><td class="num neg">-3.4%</td>
+        <td class="num">2,580</td><td class="num">2,610</td>
+        <td class="num neg">△30</td><td class="num neg">-1.1%</td>
+        <td class="num">2,500</td><td class="num pos">+3.2%</td>
+      </tr>
+      <tr>
+        <td class="indent">その他 Others</td>
+        <td class="num">240</td><td class="num">230</td>
+        <td class="num pos">+10</td><td class="num pos">+4.3%</td>
+        <td class="num">2,100</td><td class="num">2,020</td>
+        <td class="num pos">+80</td><td class="num pos">+4.0%</td>
+        <td class="num">1,900</td><td class="num pos">+10.5%</td>
+      </tr>
+      <tr class="subtotal">
+        <td>売上高合計 Total Revenue</td>
+        <td class="num">1,520</td><td class="num">1,640</td>
+        <td class="num neg">△120</td><td class="num neg">-7.3%</td>
+        <td class="num">13,800</td><td class="num">14,710</td>
+        <td class="num neg">△910</td><td class="num neg">-6.2%</td>
+        <td class="num">13,900</td><td class="num neg">-0.7%</td>
+      </tr>
+
+      <!-- COGS -->
+      <tr class="section-header"><td colspan="11">売上原価 COGS</td></tr>
+      <tr>
+        <td class="indent">材料費 Material</td>
+        <td class="num">646</td><td class="num">590</td>
+        <td class="num neg">△56</td><td class="num neg">-9.5%</td>
+        <td class="num">5,796</td><td class="num">5,295</td>
+        <td class="num neg">△501</td><td class="num neg">-9.5%</td>
+        <td class="num">5,282</td><td class="num neg">-9.7%</td>
+      </tr>
+      <tr>
+        <td class="indent2">うち 銅 Copper</td>
+        <td class="num">198</td><td class="num">165</td>
+        <td class="num neg">△33</td><td class="num"></td>
+        <td class="num">1,782</td><td class="num">1,485</td>
+        <td class="num neg">△297</td><td class="num"></td>
+        <td class="num">1,440</td><td class="num"></td>
+      </tr>
+      <tr>
+        <td class="indent2">うち アルミ Aluminum</td>
+        <td class="num">126</td><td class="num">112</td>
+        <td class="num neg">△14</td><td class="num"></td>
+        <td class="num">1,134</td><td class="num">1,008</td>
+        <td class="num neg">△126</td><td class="num"></td>
+        <td class="num">980</td><td class="num"></td>
+      </tr>
+      <tr>
+        <td class="indent">労務費 Labor</td>
+        <td class="num">243</td><td class="num">238</td>
+        <td class="num neg">△5</td><td class="num neg">-2.1%</td>
+        <td class="num">2,174</td><td class="num">2,133</td>
+        <td class="num neg">△41</td><td class="num neg">-1.9%</td>
+        <td class="num">2,090</td><td class="num neg">-4.0%</td>
+      </tr>
+      <tr>
+        <td class="indent">製造間接費 Mfg OH</td>
+        <td class="num">280</td><td class="num">262</td>
+        <td class="num neg">△18</td><td class="num neg">-6.9%</td>
+        <td class="num">2,508</td><td class="num">2,350</td>
+        <td class="num neg">△158</td><td class="num neg">-6.7%</td>
+        <td class="num">2,310</td><td class="num neg">-8.6%</td>
+      </tr>
+      <tr>
+        <td class="indent2">うち 減価償却費 Depr.</td>
+        <td class="num">105</td><td class="num">100</td>
+        <td class="num neg">△5</td><td class="num"></td>
+        <td class="num">940</td><td class="num">900</td>
+        <td class="num neg">△40</td><td class="num"></td>
+        <td class="num">880</td><td class="num"></td>
+      </tr>
+      <tr>
+        <td class="indent2">うち 修繕費 Repair</td>
+        <td class="num">62</td><td class="num">45</td>
+        <td class="num neg">△17</td><td class="num"></td>
+        <td class="num">520</td><td class="num">405</td>
+        <td class="num neg">△115</td><td class="num"></td>
+        <td class="num">380</td><td class="num"></td>
+      </tr>
+      <tr>
+        <td class="indent2">うち 電力費 Utilities</td>
+        <td class="num">38</td><td class="num">40</td>
+        <td class="num pos">+2</td><td class="num"></td>
+        <td class="num">348</td><td class="num">360</td>
+        <td class="num pos">+12</td><td class="num"></td>
+        <td class="num">365</td><td class="num"></td>
+      </tr>
+      <tr class="subtotal">
+        <td>売上原価合計 Total COGS</td>
+        <td class="num">1,169</td><td class="num">1,090</td>
+        <td class="num neg">△79</td><td class="num neg">-7.2%</td>
+        <td class="num">10,478</td><td class="num">9,778</td>
+        <td class="num neg">△700</td><td class="num neg">-7.2%</td>
+        <td class="num">9,682</td><td class="num neg">-8.2%</td>
+      </tr>
+      <tr class="total">
+        <td>売上総利益 Gross Profit</td>
+        <td class="num">351</td><td class="num">550</td>
+        <td class="num neg">△199</td><td class="num neg">-36.2%</td>
+        <td class="num">3,322</td><td class="num">4,932</td>
+        <td class="num neg">△1,610</td><td class="num neg">-32.6%</td>
+        <td class="num">4,218</td><td class="num neg">-21.2%</td>
+      </tr>
+      <tr>
+        <td style="color:#888; padding-left:20px;">粗利率 GP Margin</td>
+        <td class="num" style="color:#888;">23.1%</td><td class="num" style="color:#888;">33.5%</td>
+        <td class="num neg">-10.4pt</td><td class="num"></td>
+        <td class="num" style="color:#888;">24.1%</td><td class="num" style="color:#888;">33.5%</td>
+        <td class="num neg">-9.4pt</td><td class="num"></td>
+        <td class="num" style="color:#888;">30.3%</td><td class="num"></td>
+      </tr>
+
+      <!-- SGA -->
+      <tr class="section-header"><td colspan="11">販売管理費 SG&A</td></tr>
+      <tr>
+        <td class="indent">人件費 Personnel</td>
+        <td class="num">85</td><td class="num">90</td>
+        <td class="num pos">+5</td><td class="num"></td>
+        <td class="num">765</td><td class="num">810</td>
+        <td class="num pos">+45</td><td class="num"></td>
+        <td class="num">790</td><td class="num"></td>
+      </tr>
+      <tr>
+        <td class="indent">旅費交通費 Travel</td>
+        <td class="num">12</td><td class="num">18</td>
+        <td class="num pos">+6</td><td class="num"></td>
+        <td class="num">115</td><td class="num">162</td>
+        <td class="num pos">+47</td><td class="num"></td>
+        <td class="num">155</td><td class="num"></td>
+      </tr>
+      <tr>
+        <td class="indent">研究開発費 R&D</td>
+        <td class="num">98</td><td class="num">95</td>
+        <td class="num neg">△3</td><td class="num"></td>
+        <td class="num">880</td><td class="num">855</td>
+        <td class="num neg">△25</td><td class="num"></td>
+        <td class="num">820</td><td class="num"></td>
+      </tr>
+      <tr>
+        <td class="indent">その他 Others</td>
+        <td class="num">52</td><td class="num">55</td>
+        <td class="num pos">+3</td><td class="num"></td>
+        <td class="num">468</td><td class="num">495</td>
+        <td class="num pos">+27</td><td class="num"></td>
+        <td class="num">480</td><td class="num"></td>
+      </tr>
+      <tr class="subtotal">
+        <td>販管費合計 Total SG&A</td>
+        <td class="num">247</td><td class="num">258</td>
+        <td class="num pos">+11</td><td class="num pos">+4.3%</td>
+        <td class="num">2,228</td><td class="num">2,322</td>
+        <td class="num pos">+94</td><td class="num pos">+4.0%</td>
+        <td class="num">2,245</td><td class="num pos">+0.8%</td>
+      </tr>
+      <tr class="total2">
+        <td>営業利益 Operating Profit</td>
+        <td class="num">104</td><td class="num">292</td>
+        <td class="num neg">△188</td><td class="num neg">-64.4%</td>
+        <td class="num">980</td><td class="num">1,300</td>
+        <td class="num neg">△320</td><td class="num neg">-24.6%</td>
+        <td class="num">1,035</td><td class="num neg">-5.3%</td>
+      </tr>
+      <tr>
+        <td style="color:#888; padding-left:20px;">営業利益率 OP Margin</td>
+        <td class="num" style="color:#888;">6.8%</td><td class="num" style="color:#888;">17.8%</td>
+        <td class="num neg">-11.0pt</td><td class="num"></td>
+        <td class="num" style="color:#888;">7.1%</td><td class="num" style="color:#888;">8.8%</td>
+        <td class="num neg">-1.7pt</td><td class="num"></td>
+        <td class="num" style="color:#888;">7.4%</td><td class="num"></td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Variance Bridge -->
+  <div class="panel">
+    <h2>営業利益差異分析 OP Variance Bridge (YTD累計)
+      <span class="badge badge-red">△320M</span>
+    </h2>
+    <table style="margin-bottom:10px;">
+      <tr>
+        <th style="width:40%">差異要因 Factor</th>
+        <th class="num" style="width:20%">金額 (M円)</th>
+        <th style="width:40%">ビジュアル</th>
+      </tr>
+      <tr>
+        <td>予算 Budget OP</td>
+        <td class="num">1,300</td>
+        <td><div class="var-bar-cell"><div class="var-bar base" style="width:100px;"></div></div></td>
+      </tr>
+      <tr>
+        <td class="indent">売上数量減 Volume</td>
+        <td class="num neg">△480</td>
+        <td><div class="var-bar-cell"><div class="var-bar neg" style="width:60px;"></div></div></td>
+      </tr>
+      <tr>
+        <td class="indent">売上単価差 Price</td>
+        <td class="num pos">+52</td>
+        <td><div class="var-bar-cell"><div class="var-bar pos" style="width:7px;"></div></div></td>
+      </tr>
+      <tr>
+        <td class="indent">構成比差 Mix</td>
+        <td class="num neg">△82</td>
+        <td><div class="var-bar-cell"><div class="var-bar neg" style="width:10px;"></div></div></td>
+      </tr>
+      <tr>
+        <td class="indent">材料費高騰 Material Cost</td>
+        <td class="num neg">△501</td>
+        <td><div class="var-bar-cell"><div class="var-bar neg" style="width:63px;"></div></div></td>
+      </tr>
+      <tr>
+        <td class="indent2">うち銅 Copper</td>
+        <td class="num neg" style="color:#999;">△297</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent2">うちアルミ Aluminum</td>
+        <td class="num neg" style="color:#999;">△126</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent">労務費増 Labor</td>
+        <td class="num neg">△41</td>
+        <td><div class="var-bar-cell"><div class="var-bar neg" style="width:5px;"></div></div></td>
+      </tr>
+      <tr>
+        <td class="indent">製造OH増 Mfg OH</td>
+        <td class="num neg">△158</td>
+        <td><div class="var-bar-cell"><div class="var-bar neg" style="width:20px;"></div></div></td>
+      </tr>
+      <tr>
+        <td class="indent2">うち修繕費 Repair</td>
+        <td class="num neg" style="color:#999;">△115</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent">販管費削減 SG&A Saving</td>
+        <td class="num pos">+94</td>
+        <td><div class="var-bar-cell"><div class="var-bar pos" style="width:12px;"></div></div></td>
+      </tr>
+      <tr>
+        <td class="indent">為替影響 FX Impact</td>
+        <td class="num neg">△24</td>
+        <td><div class="var-bar-cell"><div class="var-bar neg" style="width:3px;"></div></div></td>
+      </tr>
+      <tr style="font-weight:700; border-top:2px solid #1a365d;">
+        <td>着地見込 Forecast OP</td>
+        <td class="num">980</td>
+        <td><div class="var-bar-cell"><div class="var-bar result" style="width:75px;"></div></div></td>
+      </tr>
+    </table>
+    <div class="footnote">※ 最大差異要因：材料費△501M（全差異の39%）+ 売上数量減△480M（37%）</div>
+  </div>
+
+  <!-- Product Profitability -->
+  <div class="panel">
+    <h2>製品群別損益 Product Profitability (YTD累計)
+      <span class="badge badge-yellow">Mix悪化</span>
+    </h2>
+    <table class="product-table">
+      <tr>
+        <th>製品群 Product</th>
+        <th class="num">売上 Rev</th>
+        <th class="num">構成比</th>
+        <th class="num">粗利率 GM%</th>
+        <th class="num">予算GM%</th>
+        <th class="num">差</th>
+        <th class="num">OP (M円)</th>
+      </tr>
+      <tr>
+        <td>パワトレ部品 Powertrain</td>
+        <td class="num">4,830</td>
+        <td class="num">35.0%</td>
+        <td class="num">27.2%</td>
+        <td class="num">30.5%</td>
+        <td class="num neg">-3.3pt</td>
+        <td class="num">520</td>
+      </tr>
+      <tr>
+        <td>センサー Sensor</td>
+        <td class="num">3,726</td>
+        <td class="num">27.0%</td>
+        <td class="num">28.5%</td>
+        <td class="num">31.0%</td>
+        <td class="num neg">-2.5pt</td>
+        <td class="num">410</td>
+      </tr>
+      <tr>
+        <td>コネクタ Connector</td>
+        <td class="num">2,898</td>
+        <td class="num">21.0%</td>
+        <td class="num">20.1%</td>
+        <td class="num">24.0%</td>
+        <td class="num neg">-3.9pt</td>
+        <td class="num">180</td>
+      </tr>
+      <tr>
+        <td>EV関連 EV Components</td>
+        <td class="num">1,656</td>
+        <td class="num">12.0%</td>
+        <td class="num">15.8%</td>
+        <td class="num">18.5%</td>
+        <td class="num neg">-2.7pt</td>
+        <td class="num">△20</td>
+      </tr>
+      <tr>
+        <td>その他 Others</td>
+        <td class="num">690</td>
+        <td class="num">5.0%</td>
+        <td class="num">18.0%</td>
+        <td class="num">20.0%</td>
+        <td class="num neg">-2.0pt</td>
+        <td class="num">△10</td>
+      </tr>
+      <tr class="total">
+        <td>合計 Total</td>
+        <td class="num">13,800</td>
+        <td class="num">100%</td>
+        <td class="num">24.1%</td>
+        <td class="num">33.5%</td>
+        <td class="num neg">-9.4pt</td>
+        <td class="num">980</td>
+      </tr>
+    </table>
+    <div class="footnote" style="margin-top:12px;">
+      ※ コネクタ：銅価格高騰の直撃（材料費比率45%）<br>
+      ※ EV関連：量産立上げ期、歩留まり改善中（現82%→目標92%）
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <!-- Regional Breakdown -->
+  <div class="panel">
+    <h2>地域別売上推移 Regional Revenue Trend (月次)</h2>
+    <table>
+      <tr>
+        <th>地域 Region</th>
+        <th class="num">Oct</th>
+        <th class="num">Nov</th>
+        <th class="num">Dec</th>
+        <th class="num">Jan</th>
+        <th class="num">Feb</th>
+        <th class="num">トレンド</th>
+      </tr>
+      <tr>
+        <td>国内 Domestic</td>
+        <td class="num">625</td><td class="num">630</td><td class="num">610</td><td class="num">618</td><td class="num">620</td>
+        <td style="font-size: 16px; color:#d69e2e;">→ 横ばい</td>
+      </tr>
+      <tr>
+        <td>中国 China</td>
+        <td class="num">460</td><td class="num">440</td><td class="num">420</td><td class="num">400</td><td class="num">380</td>
+        <td style="font-size: 16px; color:#e53e3e;">↘ 5ヶ月連続減</td>
+      </tr>
+      <tr>
+        <td>北米 N.America</td>
+        <td class="num">275</td><td class="num">280</td><td class="num">278</td><td class="num">282</td><td class="num">280</td>
+        <td style="font-size: 16px; color:#38a169;">→ 安定</td>
+      </tr>
+      <tr>
+        <td>その他 Others</td>
+        <td class="num">210</td><td class="num">215</td><td class="num">225</td><td class="num">235</td><td class="num">240</td>
+        <td style="font-size: 16px; color:#38a169;">↗ インド好調</td>
+      </tr>
+      <tr class="subtotal">
+        <td>合計 Total</td>
+        <td class="num">1,570</td><td class="num">1,565</td><td class="num">1,533</td><td class="num">1,535</td><td class="num">1,520</td>
+        <td style="font-size: 16px; color:#e53e3e;">↘ 下降傾向</td>
+      </tr>
+    </table>
+    <div class="footnote">※ 中国：EV補助金縮小 + 現地メーカーとの価格競争激化</div>
+  </div>
+
+  <!-- Cost Center Summary -->
+  <div class="panel">
+    <h2>主要原価センタ別差異 Cost Center Variance (YTD Top5)</h2>
+    <table>
+      <tr>
+        <th>原価センタ Cost Center</th>
+        <th class="num">予算</th>
+        <th class="num">実績</th>
+        <th class="num">差異</th>
+        <th class="num">差異%</th>
+      </tr>
+      <tr>
+        <td>CC4110 車載製造1課 (プレス)</td>
+        <td class="num">1,850</td><td class="num">2,045</td>
+        <td class="num neg">△195</td><td class="num neg">-10.5%</td>
+      </tr>
+      <tr>
+        <td class="indent2" style="padding-left:20px;">→ 老朽プレス機修繕費超過</td>
+        <td colspan="4"></td>
+      </tr>
+      <tr>
+        <td>CC4120 車載製造2課 (成形)</td>
+        <td class="num">1,420</td><td class="num">1,512</td>
+        <td class="num neg">△92</td><td class="num neg">-6.5%</td>
+      </tr>
+      <tr>
+        <td class="indent2" style="padding-left:20px;">→ 金型摩耗による不良率増</td>
+        <td colspan="4"></td>
+      </tr>
+      <tr>
+        <td>CC4130 車載製造3課 (組立)</td>
+        <td class="num">980</td><td class="num">1,005</td>
+        <td class="num neg">△25</td><td class="num neg">-2.6%</td>
+      </tr>
+      <tr>
+        <td>CC4210 車載品質管理課</td>
+        <td class="num">320</td><td class="num">358</td>
+        <td class="num neg">△38</td><td class="num neg">-11.9%</td>
+      </tr>
+      <tr>
+        <td class="indent2" style="padding-left:20px;">→ 検査工程追加（顧客要求）</td>
+        <td colspan="4"></td>
+      </tr>
+      <tr>
+        <td>CC4310 車載開発課</td>
+        <td class="num">855</td><td class="num">880</td>
+        <td class="num neg">△25</td><td class="num neg">-2.9%</td>
+      </tr>
+    </table>
+    <div class="footnote">※ CC4110のプレス機：2027年度CAPEX計画で更新予定。当期は修繕で対応。</div>
+  </div>
+</div>
+
+<!-- Commentary -->
+<div class="grid-2" style="margin-top:0;">
+  <div class="panel">
+    <h2>事業部長コメント Commentary</h2>
+    <ul class="comment-list">
+      <li class="issue">
+        <span class="comment-tag issue">課題 ISSUE</span>
+        中国売上が5ヶ月連続で減少。EV補助金縮小と現地メーカーの価格攻勢が主因。Q4に向けて更なる悪化リスクあり。主要顧客3社のうち1社が内製化を検討中との情報あり。
+      </li>
+      <li class="issue">
+        <span class="comment-tag issue">課題 ISSUE</span>
+        材料費高騰（銅+12%、アルミ+8% YoY）が粗利を直撃。コネクタ製品群は材料費比率45%のため影響が最も大きい。価格転嫁は現行契約では次年度まで不可。
+      </li>
+      <li class="action">
+        <span class="comment-tag action">アクション ACTION</span>
+        価格改定交渉をQ4から前倒し開始。主要顧客5社に対し3-5%の値上げを提案予定（3月中にRFQ提出）。受入見込みは2社、残り3社は交渉長期化の可能性。
+      </li>
+      <li class="action">
+        <span class="comment-tag action">アクション ACTION</span>
+        CC4110プレス機の修繕費抑制のため、CAPEX前倒し（2027→2026下期）を投資委員会に上申予定。概算450M円。修繕費の年間120M円削減が見込める。
+      </li>
+      <li class="positive">
+        <span class="comment-tag positive">好材料 POSITIVE</span>
+        インド市場が前年比+28%で成長継続。Tata Motors向けセンサーの量産契約を3月に締結予定（年間売上見込み380M円）。中国減の一部をインドでカバーできる見通し。
+      </li>
+    </ul>
+  </div>
+
+  <!-- Forecast & Risks -->
+  <div class="panel">
+    <h2>通期着地見込み＆リスク Forecast & Risk/Opportunity</h2>
+    <table style="margin-bottom:15px;">
+      <tr>
+        <th></th>
+        <th class="num">予算</th>
+        <th class="num">着地見込</th>
+        <th class="num">差異</th>
+      </tr>
+      <tr>
+        <td>売上高 Revenue</td>
+        <td class="num">19,700</td>
+        <td class="num">18,400</td>
+        <td class="num neg">△1,300</td>
+      </tr>
+      <tr>
+        <td>粗利率 GP Margin</td>
+        <td class="num">33.5%</td>
+        <td class="num">24.8%</td>
+        <td class="num neg">-8.7pt</td>
+      </tr>
+      <tr class="total">
+        <td>営業利益 OP</td>
+        <td class="num">1,740</td>
+        <td class="num">1,280</td>
+        <td class="num neg">△460</td>
+      </tr>
+    </table>
+
+    <div style="font-size: 16px; font-weight:600; margin-bottom:8px; color:#1a365d;">Risk & Opportunity リスク・機会一覧</div>
+    <table>
+      <tr>
+        <th style="width:10%">種別</th>
+        <th style="width:50%">項目</th>
+        <th class="num" style="width:15%">影響額</th>
+        <th class="num" style="width:15%">確度</th>
+      </tr>
+      <tr>
+        <td style="color:#e53e3e;">▼Risk</td>
+        <td>中国主要顧客の内製化</td>
+        <td class="num neg">△200M</td>
+        <td class="num">Medium</td>
+      </tr>
+      <tr>
+        <td style="color:#e53e3e;">▼Risk</td>
+        <td>銅価格さらに上昇（+5%追加）</td>
+        <td class="num neg">△80M</td>
+        <td class="num">High</td>
+      </tr>
+      <tr>
+        <td style="color:#e53e3e;">▼Risk</td>
+        <td>円安進行（材料輸入コスト増）</td>
+        <td class="num neg">△50M</td>
+        <td class="num">Medium</td>
+      </tr>
+      <tr>
+        <td style="color:#38a169;">▲Opp</td>
+        <td>Tata Motors量産契約</td>
+        <td class="num pos">+120M</td>
+        <td class="num">High</td>
+      </tr>
+      <tr>
+        <td style="color:#38a169;">▲Opp</td>
+        <td>価格改定（2社受入想定）</td>
+        <td class="num pos">+90M</td>
+        <td class="num">Medium</td>
+      </tr>
+      <tr>
+        <td style="color:#38a169;">▲Opp</td>
+        <td>EV歩留まり改善（82→90%）</td>
+        <td class="num pos">+45M</td>
+        <td class="num">Medium</td>
+      </tr>
+    </table>
+    <div class="footnote" style="margin-top:10px;">
+      Worst Case: △790M (予算比▼45%) | Best Case: △205M (予算比▼12%)<br>
+      ※ Base Case着地 △460M には確度Highのリスク・機会のみ織込み済
+    </div>
+  </div>
+</div>
+
+<div class="footnote" style="margin-top:8px;">Confidential 社外秘 | 車載事業部 経営管理課作成 | 2026年3月5日 | 次回レビュー：3月度事業部経営会議</div>
+
+</div>
+</body>
+</html>

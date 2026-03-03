@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Layer 3a - Plant Cost Center Overview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #2d3748; padding: 26px; font-size: 19px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .header { background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%); color: white; padding: 24px 28px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; }
+  .header-left h1 { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+  .header-left .subtitle { font-size: 16px; opacity: 0.7; }
+  .header-right { text-align: right; }
+  .header-right .plant-name { font-size: 28px; font-weight: 700; }
+  .header-right .plant-sub { font-size: 16px; opacity: 0.7; }
+
+  .status-banner { border-radius: 6px; padding: 10px 18px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .status-banner.yellow { background: #fffff0; border: 1px solid #f6e05e; }
+  .status-banner .icon { font-size: 22px; }
+  .status-banner .text { font-size: 18px; color: #975a16; }
+  .status-banner .text strong { font-size: 19px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .full { grid-column: 1 / -1; }
+
+  .panel { background: white; border-radius: 6px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .panel h2 { font-size: 18px; font-weight: 700; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .panel h2 .badge { font-size: 14px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .badge-red { background: #fff5f5; color: #c53030; }
+  .badge-green { background: #f0fff4; color: #276749; }
+  .badge-yellow { background: #fffff0; color: #975a16; }
+
+  .mini-kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px; }
+  .mini-kpi { background: white; border-radius: 6px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-top: 3px solid #cbd5e0; text-align: center; }
+  .mini-kpi.red { border-top-color: #e53e3e; }
+  .mini-kpi.green { border-top-color: #38a169; }
+  .mini-kpi.yellow { border-top-color: #d69e2e; }
+  .mini-kpi .label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .mini-kpi .value { font-size: 28px; font-weight: 700; }
+  .mini-kpi .sub { font-size: 9px; margin-top: 2px; }
+  .mini-kpi .sub.neg { color: #e53e3e; }
+  .mini-kpi .sub.pos { color: #38a169; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 18px; }
+  th { text-align: left; padding: 5px 6px; background: #f7fafc; color: #666; font-weight: 600; border-bottom: 1px solid #e2e8f0; font-size: 16px; }
+  th.num { text-align: right; }
+  td { padding: 5px 6px; border-bottom: 1px solid #f0f0f0; }
+  td.num { text-align: right; font-family: 'Consolas', 'Courier New', monospace; }
+  td.neg { color: #e53e3e; }
+  td.pos { color: #38a169; }
+  td.indent { padding-left: 18px; }
+  tr.total { font-weight: 700; }
+  tr.total td { border-top: 2px solid #2d3748; background: #edf2f7; }
+  tr.highlight td { background: #fff5f5; }
+
+  .bar-container { width: 100%; height: 16px; background: #edf2f7; border-radius: 3px; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; padding-left: 4px; font-size: 9px; color: white; font-weight: 600; }
+  .bar-fill.red { background: #fc8181; }
+  .bar-fill.green { background: #68d391; }
+  .bar-fill.yellow { background: #ecc94b; }
+  .bar-fill.blue { background: #63b3ed; }
+
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+  .dot-red { background: #e53e3e; }
+  .dot-green { background: #38a169; }
+  .dot-yellow { background: #d69e2e; }
+
+  .comment-list { list-style: none; }
+  .comment-list li { padding: 6px 10px; margin-bottom: 3px; font-size: 16px; line-height: 1.5; border-left: 3px solid #e2e8f0; }
+  .comment-list li.issue { border-left-color: #e53e3e; background: #fff5f5; }
+  .comment-list li.action { border-left-color: #3182ce; background: #ebf8ff; }
+  .comment-list li.positive { border-left-color: #38a169; background: #f0fff4; }
+  .comment-list li.info { border-left-color: #9f7aea; background: #faf5ff; }
+  .comment-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; display: block; }
+  .comment-tag.issue { color: #c53030; }
+  .comment-tag.action { color: #2b6cb0; }
+  .comment-tag.positive { color: #276749; }
+  .comment-tag.info { color: #6b46c1; }
+
+  .footnote { font-size: 14px; color: #999; margin-top: 6px; }
+  .cc-link { color: #3182ce; text-decoration: underline; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1>Plant Cost Center Overview プラント原価センタ総括</h1>
+    <div class="subtitle">FY2026 | 2026年2月度 (YTD累計: 2025年6月 - 2026年2月) | 車載事業部</div>
+  </div>
+  <div class="header-right">
+    <div class="plant-name">Plant 1000 大阪工場</div>
+    <div class="plant-sub">工場長：鈴木 一郎 | 製造原価センタ 6拠点 | 要員 計186名</div>
+  </div>
+</div>
+
+<!-- Status Banner -->
+<div class="status-banner yellow">
+  <span class="icon">🟡</span>
+  <div class="text">
+    <strong>工場全体 YTD残高 145M（予算比 +2.4%）</strong>
+    — CC4110（プレス）の修繕費超過65Mが全体の45%を占める。他課は概ね計画内。
+  </div>
+</div>
+
+<!-- Mini KPI Row -->
+<div class="mini-kpi-row">
+  <div class="mini-kpi yellow">
+    <div class="label">工場残高 Plant Balance</div>
+    <div class="value">¥145M</div>
+    <div class="sub neg">前年82M | +76.8%</div>
+  </div>
+  <div class="mini-kpi yellow">
+    <div class="label">借方合計 Total Input</div>
+    <div class="value">¥6,095M</div>
+    <div class="sub neg">予算5,690M | +7.1%</div>
+  </div>
+  <div class="mini-kpi green">
+    <div class="label">貸方合計 Total Output</div>
+    <div class="value">¥5,950M</div>
+    <div class="sub pos">計画5,600M | +6.3%</div>
+  </div>
+  <div class="mini-kpi red">
+    <div class="label">アラートCC Alert</div>
+    <div class="value">1 / 6</div>
+    <div class="sub neg">CC4110 残高率3.2%</div>
+  </div>
+  <div class="mini-kpi green">
+    <div class="label">要員充足率 HC Fill</div>
+    <div class="value">95.2%</div>
+    <div class="sub neg">186/195名 | 欠員9名</div>
+  </div>
+</div>
+
+<!-- Main CC Overview Table -->
+<div class="grid-2">
+  <div class="panel full">
+    <h2>原価センタ別 貸借残一覧 Cost Center Balance Overview (YTD 千円)
+      <span class="badge badge-yellow">CC4110 要注意</span>
+    </h2>
+    <table>
+      <tr>
+        <th style="width:4%">状態</th>
+        <th style="width:8%">CC</th>
+        <th style="width:14%">名称</th>
+        <th style="width:7%">責任者</th>
+        <th class="num" style="width:9%">借方(Input)</th>
+        <th class="num" style="width:9%">貸方(Output)</th>
+        <th class="num" style="width:8%">残高</th>
+        <th class="num" style="width:6%">残高率</th>
+        <th class="num" style="width:8%">予算差異</th>
+        <th class="num" style="width:8%">操業度差異</th>
+        <th style="width:12%">残高構成</th>
+        <th style="width:7%">前年残高</th>
+      </tr>
+      <tr class="highlight">
+        <td><span class="dot dot-red"></span></td>
+        <td><span class="cc-link">CC4110</span></td>
+        <td>製造1課（プレス）</td>
+        <td style="font-size: 16px;">山田太郎</td>
+        <td class="num">2,045,000</td>
+        <td class="num">△1,980,000</td>
+        <td class="num neg" style="font-weight:700;">65,000</td>
+        <td class="num neg">3.2%</td>
+        <td class="num neg">108,600</td>
+        <td class="num pos">△43,600</td>
+        <td>
+          <div class="bar-container">
+            <div class="bar-fill red" style="width:45%;">45%</div>
+          </div>
+        </td>
+        <td class="num">15,000</td>
+      </tr>
+      <tr>
+        <td><span class="dot dot-green"></span></td>
+        <td><span class="cc-link">CC4120</span></td>
+        <td>製造2課（溶接）</td>
+        <td style="font-size: 16px;">佐藤次郎</td>
+        <td class="num">1,820,000</td>
+        <td class="num">△1,810,000</td>
+        <td class="num">10,000</td>
+        <td class="num">0.5%</td>
+        <td class="num neg">18,000</td>
+        <td class="num pos">△8,000</td>
+        <td>
+          <div class="bar-container">
+            <div class="bar-fill green" style="width:7%;">7%</div>
+          </div>
+        </td>
+        <td class="num">12,000</td>
+      </tr>
+      <tr>
+        <td><span class="dot dot-yellow"></span></td>
+        <td><span class="cc-link">CC4130</span></td>
+        <td>製造3課（塗装）</td>
+        <td style="font-size: 16px;">高橋三郎</td>
+        <td class="num">1,350,000</td>
+        <td class="num">△1,320,000</td>
+        <td class="num neg">30,000</td>
+        <td class="num neg">2.2%</td>
+        <td class="num neg">42,000</td>
+        <td class="num pos">△12,000</td>
+        <td>
+          <div class="bar-container">
+            <div class="bar-fill yellow" style="width:21%;">21%</div>
+          </div>
+        </td>
+        <td class="num">22,000</td>
+      </tr>
+      <tr>
+        <td><span class="dot dot-green"></span></td>
+        <td><span class="cc-link">CC4140</span></td>
+        <td>製造4課（組立）</td>
+        <td style="font-size: 16px;">田中四郎</td>
+        <td class="num">980,000</td>
+        <td class="num">△965,000</td>
+        <td class="num">15,000</td>
+        <td class="num">1.5%</td>
+        <td class="num neg">22,000</td>
+        <td class="num pos">△7,000</td>
+        <td>
+          <div class="bar-container">
+            <div class="bar-fill green" style="width:10%;">10%</div>
+          </div>
+        </td>
+        <td class="num">18,000</td>
+      </tr>
+      <tr>
+        <td><span class="dot dot-green"></span></td>
+        <td><span class="cc-link">CC4150</span></td>
+        <td>製造5課（検査・梱包）</td>
+        <td style="font-size: 16px;">伊藤五郎</td>
+        <td class="num">620,000</td>
+        <td class="num">△605,000</td>
+        <td class="num">15,000</td>
+        <td class="num">2.4%</td>
+        <td class="num neg">18,500</td>
+        <td class="num pos">△3,500</td>
+        <td>
+          <div class="bar-container">
+            <div class="bar-fill green" style="width:10%;">10%</div>
+          </div>
+        </td>
+        <td class="num">10,000</td>
+      </tr>
+      <tr>
+        <td><span class="dot dot-green"></span></td>
+        <td><span class="cc-link">CC4200</span></td>
+        <td>品質管理課</td>
+        <td style="font-size: 16px;">中村六郎</td>
+        <td class="num">280,000</td>
+        <td class="num">△270,000</td>
+        <td class="num">10,000</td>
+        <td class="num">3.6%</td>
+        <td class="num neg">12,000</td>
+        <td class="num pos">△2,000</td>
+        <td>
+          <div class="bar-container">
+            <div class="bar-fill green" style="width:7%;">7%</div>
+          </div>
+        </td>
+        <td class="num">5,000</td>
+      </tr>
+      <tr class="total">
+        <td></td>
+        <td colspan="2">プラント合計 Plant Total</td>
+        <td></td>
+        <td class="num">6,095,000</td>
+        <td class="num">△5,950,000</td>
+        <td class="num neg" style="font-weight:700;">145,000</td>
+        <td class="num neg">2.4%</td>
+        <td class="num neg">221,100</td>
+        <td class="num pos">△76,100</td>
+        <td>
+          <div class="bar-container">
+            <div class="bar-fill yellow" style="width:100%;">100%</div>
+          </div>
+        </td>
+        <td class="num">82,000</td>
+      </tr>
+    </table>
+    <div class="footnote">
+      ※ 残高率 = 残高 ÷ 借方 × 100（低いほど配賦効率が良い）｜ 閾値：🔴 3.0%超 🟡 2.0-3.0% 🟢 2.0%未満<br>
+      ※ 残高構成 = 当該CCの残高 ÷ プラント全体残高（CC4110が45%を占有）<br>
+      ※ CC名クリックで原価センタ個別レポート（Layer 3b）へドリルダウン
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Variance Ranking -->
+  <div class="panel">
+    <h2>予算差異ランキング（借方 超過額順）
+      <span class="badge badge-red">Top 3</span>
+    </h2>
+    <table>
+      <tr>
+        <th>#</th>
+        <th>CC / 名称</th>
+        <th>勘定科目</th>
+        <th class="num">差異(千円)</th>
+        <th>要因</th>
+      </tr>
+      <tr style="background:#fff5f5;">
+        <td style="font-weight:700; color:#e53e3e;">1</td>
+        <td>CC4110 プレス</td>
+        <td>420000 修繕費</td>
+        <td class="num neg">△115,000</td>
+        <td style="font-size: 14px;">P-3号機老朽化</td>
+      </tr>
+      <tr style="background:#fff5f5;">
+        <td style="font-weight:700; color:#e53e3e;">2</td>
+        <td>CC4130 塗装</td>
+        <td>415000 塗料費</td>
+        <td class="num neg">△28,000</td>
+        <td style="font-size: 14px;">環境規制対応塗料へ切替</td>
+      </tr>
+      <tr style="background:#fff5f5;">
+        <td style="font-weight:700; color:#e53e3e;">3</td>
+        <td>CC4110 プレス</td>
+        <td>460000 外注加工費</td>
+        <td class="num neg">△20,400</td>
+        <td style="font-size: 14px;">P-3停止時の代替外注</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>CC4140 組立</td>
+        <td>480000 治具費</td>
+        <td class="num neg">△12,000</td>
+        <td style="font-size: 14px;">新製品対応治具</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>CC4200 品管</td>
+        <td>610000 直接労務</td>
+        <td class="num neg">△8,500</td>
+        <td style="font-size: 14px;">検査要員増員</td>
+      </tr>
+    </table>
+    <div class="footnote">※ 勘定科目レベルで予算超過額の大きい順。Top1, 3がCC4110に集中。</div>
+  </div>
+
+  <!-- Headcount Summary -->
+  <div class="panel">
+    <h2>要員サマリー Headcount by CC
+      <span class="badge badge-yellow">充足率95.2%</span>
+    </h2>
+    <table>
+      <tr>
+        <th>CC / 名称</th>
+        <th class="num">計画</th>
+        <th class="num">実績</th>
+        <th class="num">欠員</th>
+        <th class="num">充足率</th>
+        <th>影響</th>
+      </tr>
+      <tr class="highlight">
+        <td>CC4110 プレス</td>
+        <td class="num">45</td><td class="num">42</td>
+        <td class="num neg">-3</td><td class="num neg">93.3%</td>
+        <td style="font-size: 14px; color:#e53e3e;">保全技能士-1 → 外注依存</td>
+      </tr>
+      <tr>
+        <td>CC4120 溶接</td>
+        <td class="num">38</td><td class="num">37</td>
+        <td class="num neg">-1</td><td class="num">97.4%</td>
+        <td style="font-size: 14px;">派遣補充済</td>
+      </tr>
+      <tr>
+        <td>CC4130 塗装</td>
+        <td class="num">32</td><td class="num">30</td>
+        <td class="num neg">-2</td><td class="num neg">93.8%</td>
+        <td style="font-size: 14px; color:#d69e2e;">有資格者不足</td>
+      </tr>
+      <tr>
+        <td>CC4140 組立</td>
+        <td class="num">42</td><td class="num">41</td>
+        <td class="num neg">-1</td><td class="num">97.6%</td>
+        <td style="font-size: 14px;">4月入社予定</td>
+      </tr>
+      <tr>
+        <td>CC4150 検査梱包</td>
+        <td class="num">22</td><td class="num">20</td>
+        <td class="num neg">-2</td><td class="num neg">90.9%</td>
+        <td style="font-size: 14px; color:#d69e2e;">繁忙期対応が課題</td>
+      </tr>
+      <tr>
+        <td>CC4200 品管</td>
+        <td class="num">16</td><td class="num">16</td>
+        <td class="num">0</td><td class="num pos">100%</td>
+        <td style="font-size: 14px; color:#38a169;">充足</td>
+      </tr>
+      <tr class="total">
+        <td>合計</td>
+        <td class="num">195</td><td class="num">186</td>
+        <td class="num neg">-9</td><td class="num">95.2%</td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Monthly Trend -->
+  <div class="panel">
+    <h2>月次残高推移 Monthly Balance Trend (千円)</h2>
+    <table>
+      <tr>
+        <th>月</th>
+        <th class="num">CC4110</th>
+        <th class="num">CC4120</th>
+        <th class="num">CC4130</th>
+        <th class="num">CC4140</th>
+        <th class="num">CC4150</th>
+        <th class="num">CC4200</th>
+        <th class="num" style="font-weight:700;">合計</th>
+      </tr>
+      <tr>
+        <td>Jun</td>
+        <td class="num">3,200</td><td class="num">800</td><td class="num">2,100</td><td class="num">1,200</td><td class="num">1,000</td><td class="num">500</td>
+        <td class="num" style="font-weight:600;">8,800</td>
+      </tr>
+      <tr>
+        <td>Jul</td>
+        <td class="num">5,500</td><td class="num">1,100</td><td class="num">3,800</td><td class="num">1,800</td><td class="num">1,500</td><td class="num">800</td>
+        <td class="num" style="font-weight:600;">14,500</td>
+      </tr>
+      <tr>
+        <td>Aug</td>
+        <td class="num">6,800</td><td class="num">1,200</td><td class="num">4,500</td><td class="num">2,200</td><td class="num">2,000</td><td class="num">1,200</td>
+        <td class="num" style="font-weight:600;">17,900</td>
+      </tr>
+      <tr>
+        <td>Sep</td>
+        <td class="num neg" style="font-weight:600;">14,200</td><td class="num">1,500</td><td class="num">6,800</td><td class="num">3,500</td><td class="num">3,200</td><td class="num">2,000</td>
+        <td class="num" style="font-weight:600;">31,200</td>
+      </tr>
+      <tr>
+        <td>Oct</td>
+        <td class="num neg" style="font-weight:600;">22,500</td><td class="num">2,000</td><td class="num">9,200</td><td class="num">5,000</td><td class="num">5,500</td><td class="num">3,200</td>
+        <td class="num" style="font-weight:600;">47,400</td>
+      </tr>
+      <tr>
+        <td>Nov</td>
+        <td class="num neg" style="font-weight:600;">32,000</td><td class="num">3,200</td><td class="num">13,500</td><td class="num">6,800</td><td class="num">7,200</td><td class="num">4,800</td>
+        <td class="num" style="font-weight:600;">67,500</td>
+      </tr>
+      <tr>
+        <td>Dec</td>
+        <td class="num neg" style="font-weight:600;">40,500</td><td class="num">4,500</td><td class="num">17,000</td><td class="num">8,500</td><td class="num">9,000</td><td class="num">6,200</td>
+        <td class="num" style="font-weight:600;">85,700</td>
+      </tr>
+      <tr>
+        <td>Jan</td>
+        <td class="num neg" style="font-weight:600;">54,000</td><td class="num">6,800</td><td class="num">22,000</td><td class="num">11,000</td><td class="num">11,500</td><td class="num">7,800</td>
+        <td class="num" style="font-weight:600;">113,100</td>
+      </tr>
+      <tr style="background:#fffff0;">
+        <td><strong>Feb</strong></td>
+        <td class="num neg" style="font-weight:700;">65,000</td>
+        <td class="num">10,000</td><td class="num neg">30,000</td><td class="num">15,000</td><td class="num">15,000</td><td class="num">10,000</td>
+        <td class="num" style="font-weight:700;">145,000</td>
+      </tr>
+    </table>
+    <div class="footnote">
+      ※ CC4110は9月以降に急増（P-3号機修繕開始）。他CCは緩やかな累積。<br>
+      ※ 工場全体の残高145Mのうち、CC4110が65M（45%）を占有。CC4110を除くと80M（残高率1.5%で健全水準）。
+    </div>
+  </div>
+
+  <!-- Activity Summary -->
+  <div class="panel">
+    <h2>活動量サマリー Activity Volume by CC (YTD)</h2>
+    <table>
+      <tr>
+        <th>CC / 名称</th>
+        <th class="num">計画(h)</th>
+        <th class="num">実績(h)</th>
+        <th class="num">差異</th>
+        <th class="num">達成率</th>
+        <th>操業度差異影響</th>
+      </tr>
+      <tr class="highlight">
+        <td>CC4110 プレス</td>
+        <td class="num">17,800</td><td class="num">18,200</td>
+        <td class="num pos">+400</td><td class="num pos">102.2%</td>
+        <td style="font-size: 14px; color:#38a169;">有利△43.6M</td>
+      </tr>
+      <tr>
+        <td>CC4120 溶接</td>
+        <td class="num">14,200</td><td class="num">14,500</td>
+        <td class="num pos">+300</td><td class="num pos">102.1%</td>
+        <td style="font-size: 14px; color:#38a169;">有利△8.0M</td>
+      </tr>
+      <tr>
+        <td>CC4130 塗装</td>
+        <td class="num">11,000</td><td class="num">10,800</td>
+        <td class="num neg">-200</td><td class="num neg">98.2%</td>
+        <td style="font-size: 14px; color:#e53e3e;">不利+3.5M</td>
+      </tr>
+      <tr>
+        <td>CC4140 組立</td>
+        <td class="num">16,500</td><td class="num">16,800</td>
+        <td class="num pos">+300</td><td class="num pos">101.8%</td>
+        <td style="font-size: 14px; color:#38a169;">有利△7.0M</td>
+      </tr>
+      <tr>
+        <td>CC4150 検査梱包</td>
+        <td class="num">9,800</td><td class="num">10,100</td>
+        <td class="num pos">+300</td><td class="num pos">103.1%</td>
+        <td style="font-size: 14px; color:#38a169;">有利△3.5M</td>
+      </tr>
+      <tr>
+        <td>CC4200 品管</td>
+        <td class="num">5,600</td><td class="num">5,800</td>
+        <td class="num pos">+200</td><td class="num pos">103.6%</td>
+        <td style="font-size: 14px; color:#38a169;">有利△2.0M</td>
+      </tr>
+      <tr class="total">
+        <td>合計</td>
+        <td class="num">74,900</td><td class="num">76,200</td>
+        <td class="num pos">+1,300</td><td class="num pos">101.7%</td>
+        <td style="font-size: 14px;">有利△76.1M（予算差異221Mを一部相殺）</td>
+      </tr>
+    </table>
+    <div class="footnote">
+      ※ 全体で活動量+1.7%（需要増対応）。操業度の有利差異76.1Mが発生。<br>
+      ※ CC4130（塗装）のみ計画未達 → 環境規制対応で一部ライン停止の影響。
+    </div>
+  </div>
+</div>
+
+<!-- Commentary -->
+<div class="grid-2">
+  <div class="panel">
+    <h2>工場長コメント・アクション</h2>
+    <ul class="comment-list">
+      <li class="issue">
+        <span class="comment-tag issue">最重要課題：CC4110 P-3号機</span>
+        プレス機P-3号機（1998年導入、稼働28年目）の老朽化が工場全体の収益を圧迫。修繕費△115M、外注費△20.4M、不良ロス含め推定△160M超の連鎖影響。CC4110を除けばプラント全体の残高率は1.5%で健全水準。問題はP-3に集中している。
+      </li>
+      <li class="action">
+        <span class="comment-tag action">投資申請</span>
+        P-3号機更新の投資申請書を作成中（概算450M）。3月の投資委員会で上申予定。年間170M削減見込み（修繕120M+外注30M+不良ロス20M）。ROI 2.6年。事業部レポート（Layer 2）にも記載し、事業部長の承認を得ている。
+      </li>
+      <li class="issue">
+        <span class="comment-tag issue">CC4130 環境規制対応</span>
+        塗装課は環境規制強化に伴う塗料切替で費用増△28M。規制対応は必須のため削減余地なし。新塗料の歩留まりが安定すれば下期に改善見込み。
+      </li>
+      <li class="info">
+        <span class="comment-tag info">人員</span>
+        工場全体で9名の欠員。プレス課の保全技能士（-1名）は修繕費に直結。塗装課（-2名）と検査梱包課（-2名）は繁忙期のリスク。4月の新卒3名配属予定。中途採用を継続。
+      </li>
+      <li class="positive">
+        <span class="comment-tag positive">好材料</span>
+        活動量は全体+1.7%で需要増に対応できている。操業度の有利差異76.1Mが予算超過221Mを約35%相殺。金型自動交換装置（3月稼働）とLED化による省エネ効果も下期に貢献見込み。
+      </li>
+    </ul>
+  </div>
+
+  <div class="panel">
+    <h2>通期着地見通し FY2026 Full Year Forecast</h2>
+    <table>
+      <tr>
+        <th>CC / 名称</th>
+        <th class="num">通期予算</th>
+        <th class="num">通期見込</th>
+        <th class="num">残高見込</th>
+        <th>見通し</th>
+      </tr>
+      <tr class="highlight">
+        <td>CC4110 プレス</td>
+        <td class="num">2,700,000</td>
+        <td class="num">2,820,000</td>
+        <td class="num neg">95,000</td>
+        <td style="font-size: 14px; color:#c53030;">P-3修繕継続で悪化</td>
+      </tr>
+      <tr>
+        <td>CC4120 溶接</td>
+        <td class="num">2,400,000</td>
+        <td class="num">2,415,000</td>
+        <td class="num">12,000</td>
+        <td style="font-size: 14px; color:#38a169;">計画内着地</td>
+      </tr>
+      <tr>
+        <td>CC4130 塗装</td>
+        <td class="num">1,800,000</td>
+        <td class="num">1,842,000</td>
+        <td class="num neg">38,000</td>
+        <td style="font-size: 14px; color:#d69e2e;">塗料費超過継続</td>
+      </tr>
+      <tr>
+        <td>CC4140 組立</td>
+        <td class="num">1,350,000</td>
+        <td class="num">1,368,000</td>
+        <td class="num">18,000</td>
+        <td style="font-size: 14px; color:#38a169;">概ね計画内</td>
+      </tr>
+      <tr>
+        <td>CC4150 検査梱包</td>
+        <td class="num">850,000</td>
+        <td class="num">870,000</td>
+        <td class="num">18,000</td>
+        <td style="font-size: 14px; color:#38a169;">概ね計画内</td>
+      </tr>
+      <tr>
+        <td>CC4200 品管</td>
+        <td class="num">380,000</td>
+        <td class="num">392,000</td>
+        <td class="num">12,000</td>
+        <td style="font-size: 14px; color:#38a169;">増員コスト吸収済</td>
+      </tr>
+      <tr class="total">
+        <td>プラント合計</td>
+        <td class="num">9,480,000</td>
+        <td class="num">9,707,000</td>
+        <td class="num neg">193,000</td>
+        <td style="font-size: 14px; color:#d69e2e;">予算比+2.4%</td>
+      </tr>
+    </table>
+    <div class="footnote">
+      ※ P-3問題未解決の場合、CC4110の残高は通期95Mに到達する見込み<br>
+      ※ P-3更新が承認されればFY2027以降で年間170Mの改善効果<br>
+      ※ CC4110を除くプラント残高は98M（残高率1.4%）で管理水準内
+    </div>
+  </div>
+</div>
+
+<div class="footnote" style="margin-top:6px;">Confidential 社外秘 | Plant 1000 大阪工場 | 鈴木一郎 工場長作成 | 2026年3月5日 | 次回レビュー：3月度工場運営会議</div>
+
+</div>
+</body>
+</html>

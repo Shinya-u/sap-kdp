@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Layer 3 - Cost Center Detail Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #2d3748; padding: 26px; font-size: 19px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .header { background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%); color: white; padding: 24px 28px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; }
+  .header-left h1 { font-size: 17px; font-weight: 700; margin-bottom: 3px; }
+  .header-left .subtitle { font-size: 16px; opacity: 0.7; }
+  .header-right { text-align: right; }
+  .header-right .cc-name { font-size: 28px; font-weight: 700; }
+  .header-right .cc-sub { font-size: 16px; opacity: 0.7; }
+
+  .status-banner { border-radius: 6px; padding: 10px 18px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .status-banner.red { background: #fff5f5; border: 1px solid #feb2b2; }
+  .status-banner .icon { font-size: 22px; }
+  .status-banner .text { font-size: 18px; color: #c53030; }
+  .status-banner .text strong { font-size: 19px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .full { grid-column: 1 / -1; }
+
+  .panel { background: white; border-radius: 6px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .panel h2 { font-size: 18px; font-weight: 700; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .panel h2 .badge { font-size: 14px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .badge-red { background: #fff5f5; color: #c53030; }
+  .badge-green { background: #f0fff4; color: #276749; }
+  .badge-yellow { background: #fffff0; color: #975a16; }
+
+  .mini-kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 14px; }
+  .mini-kpi { background: white; border-radius: 6px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-top: 3px solid #cbd5e0; text-align: center; }
+  .mini-kpi.red { border-top-color: #e53e3e; }
+  .mini-kpi.green { border-top-color: #38a169; }
+  .mini-kpi.yellow { border-top-color: #d69e2e; }
+  .mini-kpi .label { font-size: 9px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
+  .mini-kpi .value { font-size: 28px; font-weight: 700; }
+  .mini-kpi .sub { font-size: 9px; margin-top: 2px; }
+  .mini-kpi .sub.neg { color: #e53e3e; }
+  .mini-kpi .sub.pos { color: #38a169; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 18px; }
+  th { text-align: left; padding: 4px 6px; background: #f7fafc; color: #666; font-weight: 600; border-bottom: 1px solid #e2e8f0; font-size: 16px; }
+  th.num { text-align: right; }
+  td { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; }
+  td.num { text-align: right; font-family: 'Consolas', 'Courier New', monospace; }
+  td.neg { color: #e53e3e; }
+  td.pos { color: #38a169; }
+  td.indent { padding-left: 18px; }
+  td.indent2 { padding-left: 32px; color: #666; font-size: 16px; }
+  tr.section-header td { font-weight: 700; background: #f7fafc; padding-top: 7px; }
+  tr.subtotal { font-weight: 600; }
+  tr.subtotal td { border-top: 1px solid #cbd5e0; background: #fafbfc; }
+  tr.total { font-weight: 700; }
+  tr.total td { border-top: 2px solid #2d3748; background: #edf2f7; }
+
+  .comment-list { list-style: none; }
+  .comment-list li { padding: 6px 10px; margin-bottom: 3px; font-size: 16px; line-height: 1.5; border-left: 3px solid #e2e8f0; }
+  .comment-list li.issue { border-left-color: #e53e3e; background: #fff5f5; }
+  .comment-list li.action { border-left-color: #3182ce; background: #ebf8ff; }
+  .comment-list li.info { border-left-color: #9f7aea; background: #faf5ff; }
+  .comment-list li.positive { border-left-color: #38a169; background: #f0fff4; }
+  .comment-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; display: block; }
+  .comment-tag.issue { color: #c53030; }
+  .comment-tag.action { color: #2b6cb0; }
+  .comment-tag.info { color: #6b46c1; }
+  .comment-tag.positive { color: #276749; }
+
+  .trend-cell { display: flex; align-items: center; gap: 3px; }
+  .trend-bar { height: 8px; border-radius: 2px; }
+  .trend-bar.neg { background: #fc8181; }
+  .trend-bar.pos { background: #68d391; }
+  .trend-bar.neutral { background: #cbd5e0; }
+
+  .hc-table td.name { font-weight: 600; }
+  .progress-bar { background: #edf2f7; border-radius: 3px; height: 14px; position: relative; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; justify-content: flex-end; padding-right: 4px; font-size: 9px; color: white; font-weight: 600; }
+  .progress-fill.green { background: #48bb78; }
+  .progress-fill.yellow { background: #ecc94b; }
+  .progress-fill.red { background: #fc8181; }
+
+  .footnote { font-size: 14px; color: #999; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <h1>Cost Center Detail Report 原価センタ詳細レポート</h1>
+    <div class="subtitle">FY2026 | 2026年2月度 (YTD累計: 2025年6月 - 2026年2月) | 車載事業部</div>
+  </div>
+  <div class="header-right">
+    <div class="cc-name">CC4110 車載製造1課（プレス）</div>
+    <div class="cc-sub">責任者：山田 太郎 課長 | 管理領域：1000</div>
+  </div>
+</div>
+
+<!-- Status Banner -->
+<div class="status-banner red">
+  <span class="icon">🔴</span>
+  <div class="text">
+    <strong>YTD総費用 △195M超過 (予算比 +10.5%)</strong>
+    — 主因：プレス機老朽化による修繕費超過（△115M）+ 不良率上昇に伴う材料ロス増
+  </div>
+</div>
+
+<!-- Mini KPI Row -->
+<div class="mini-kpi-row">
+  <div class="mini-kpi red">
+    <div class="label">総費用 Total Cost YTD</div>
+    <div class="value">¥2,045M</div>
+    <div class="sub neg">予算1,850M | +10.5%</div>
+  </div>
+  <div class="mini-kpi red">
+    <div class="label">修繕費 Repair YTD</div>
+    <div class="value">¥295M</div>
+    <div class="sub neg">予算180M | +63.9%</div>
+  </div>
+  <div class="mini-kpi yellow">
+    <div class="label">不良率 Defect Rate</div>
+    <div class="value">3.8%</div>
+    <div class="sub neg">目標2.5% | +1.3pt</div>
+  </div>
+  <div class="mini-kpi green">
+    <div class="label">稼働率 Utilization</div>
+    <div class="value">87.2%</div>
+    <div class="sub pos">目標85% | +2.2pt</div>
+  </div>
+  <div class="mini-kpi yellow">
+    <div class="label">要員 Headcount</div>
+    <div class="value">42名</div>
+    <div class="sub neg">計画45名 | 欠員3名</div>
+  </div>
+  <div class="mini-kpi green">
+    <div class="label">活動量 Act. Qty YTD</div>
+    <div class="value">18,200h</div>
+    <div class="sub pos">計画17,800h | +2.2%</div>
+  </div>
+</div>
+
+<!-- Main Cost Detail -->
+<div class="grid-2">
+  <div class="panel full">
+    <h2>勘定科目別予実対比 Cost Element Detail (単位: 千円)
+      <span class="badge badge-red">予算超過</span>
+    </h2>
+    <table>
+      <tr>
+        <th style="width:22%">勘定コード / 科目名</th>
+        <th class="num" style="width:7%">当月実績</th>
+        <th class="num" style="width:7%">当月予算</th>
+        <th class="num" style="width:7%">差異</th>
+        <th class="num" style="width:6%">差異%</th>
+        <th class="num" style="width:7%">累計実績</th>
+        <th class="num" style="width:7%">累計予算</th>
+        <th class="num" style="width:7%">差異</th>
+        <th class="num" style="width:6%">差異%</th>
+        <th class="num" style="width:8%">前年累計</th>
+        <th style="width:10%">トレンド</th>
+        <th style="width:6%">コメント</th>
+      </tr>
+
+      <!-- Primary Costs -->
+      <tr class="section-header"><td colspan="12">一次原価 Primary Costs</td></tr>
+
+      <tr>
+        <td class="indent">410000 消耗品費</td>
+        <td class="num">8,200</td><td class="num">7,500</td>
+        <td class="num neg">△700</td><td class="num neg">-9.3%</td>
+        <td class="num">72,800</td><td class="num">67,500</td>
+        <td class="num neg">△5,300</td><td class="num neg">-7.9%</td>
+        <td class="num">63,200</td>
+        <td><div class="trend-cell"><div class="trend-bar neg" style="width:24px;"></div></div></td>
+        <td style="font-size: 14px; color:#e53e3e;">金型消耗増</td>
+      </tr>
+      <tr>
+        <td class="indent">420000 修繕費</td>
+        <td class="num">38,500</td><td class="num">20,000</td>
+        <td class="num neg">△18,500</td><td class="num neg">-92.5%</td>
+        <td class="num">295,000</td><td class="num">180,000</td>
+        <td class="num neg">△115,000</td><td class="num neg">-63.9%</td>
+        <td class="num">142,000</td>
+        <td><div class="trend-cell"><div class="trend-bar neg" style="width:60px;"></div></div></td>
+        <td style="font-size: 14px; color:#e53e3e;">⚠️ 最大差異</td>
+      </tr>
+      <tr>
+        <td class="indent2">→ 420010 プレス機修繕</td>
+        <td class="num">28,200</td><td class="num">12,000</td>
+        <td class="num neg">△16,200</td><td class="num"></td>
+        <td class="num">218,000</td><td class="num">108,000</td>
+        <td class="num neg">△110,000</td><td class="num"></td>
+        <td class="num">95,000</td>
+        <td></td>
+        <td style="font-size: 9px; color:#999;">P-3号機集中</td>
+      </tr>
+      <tr>
+        <td class="indent2">→ 420020 金型修繕</td>
+        <td class="num">7,800</td><td class="num">5,500</td>
+        <td class="num neg">△2,300</td><td class="num"></td>
+        <td class="num">58,000</td><td class="num">49,500</td>
+        <td class="num neg">△8,500</td><td class="num"></td>
+        <td class="num">35,000</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent2">→ 420090 その他修繕</td>
+        <td class="num">2,500</td><td class="num">2,500</td>
+        <td class="num">0</td><td class="num"></td>
+        <td class="num">19,000</td><td class="num">22,500</td>
+        <td class="num pos">+3,500</td><td class="num"></td>
+        <td class="num">12,000</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent">430000 電力費</td>
+        <td class="num">4,100</td><td class="num">4,500</td>
+        <td class="num pos">+400</td><td class="num pos">+8.9%</td>
+        <td class="num">38,200</td><td class="num">40,500</td>
+        <td class="num pos">+2,300</td><td class="num pos">+5.7%</td>
+        <td class="num">41,800</td>
+        <td><div class="trend-cell"><div class="trend-bar pos" style="width:12px;"></div></div></td>
+        <td style="font-size: 14px; color:#38a169;">省エネ効果</td>
+      </tr>
+      <tr>
+        <td class="indent">440000 保険料</td>
+        <td class="num">1,800</td><td class="num">1,800</td>
+        <td class="num">0</td><td class="num">0.0%</td>
+        <td class="num">16,200</td><td class="num">16,200</td>
+        <td class="num">0</td><td class="num">0.0%</td>
+        <td class="num">15,800</td>
+        <td><div class="trend-cell"><div class="trend-bar neutral" style="width:3px;"></div></div></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent">450000 減価償却費</td>
+        <td class="num">12,500</td><td class="num">12,500</td>
+        <td class="num">0</td><td class="num">0.0%</td>
+        <td class="num">112,500</td><td class="num">112,500</td>
+        <td class="num">0</td><td class="num">0.0%</td>
+        <td class="num">110,000</td>
+        <td><div class="trend-cell"><div class="trend-bar neutral" style="width:3px;"></div></div></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent">460000 外注加工費</td>
+        <td class="num">15,600</td><td class="num">12,000</td>
+        <td class="num neg">△3,600</td><td class="num neg">-30.0%</td>
+        <td class="num">128,400</td><td class="num">108,000</td>
+        <td class="num neg">△20,400</td><td class="num neg">-18.9%</td>
+        <td class="num">98,000</td>
+        <td><div class="trend-cell"><div class="trend-bar neg" style="width:30px;"></div></div></td>
+        <td style="font-size: 14px; color:#e53e3e;">P-3停止時代替</td>
+      </tr>
+      <tr>
+        <td class="indent">470000 その他経費</td>
+        <td class="num">3,800</td><td class="num">4,200</td>
+        <td class="num pos">+400</td><td class="num pos">+9.5%</td>
+        <td class="num">35,500</td><td class="num">37,800</td>
+        <td class="num pos">+2,300</td><td class="num pos">+6.1%</td>
+        <td class="num">36,200</td>
+        <td><div class="trend-cell"><div class="trend-bar pos" style="width:6px;"></div></div></td>
+        <td></td>
+      </tr>
+      <tr class="subtotal">
+        <td>一次原価合計 Primary Total</td>
+        <td class="num">84,500</td><td class="num">62,500</td>
+        <td class="num neg">△22,000</td><td class="num neg">-35.2%</td>
+        <td class="num">698,600</td><td class="num">562,500</td>
+        <td class="num neg">△136,100</td><td class="num neg">-24.2%</td>
+        <td class="num">507,000</td>
+        <td></td>
+        <td></td>
+      </tr>
+
+      <!-- Secondary Costs -->
+      <tr class="section-header"><td colspan="12">二次原価 Secondary Costs（活動配賦）</td></tr>
+
+      <tr>
+        <td class="indent">610000 直接労務費配賦</td>
+        <td class="num">62,000</td><td class="num">63,500</td>
+        <td class="num pos">+1,500</td><td class="num pos">+2.4%</td>
+        <td class="num">558,000</td><td class="num">571,500</td>
+        <td class="num pos">+13,500</td><td class="num pos">+2.4%</td>
+        <td class="num">548,000</td>
+        <td><div class="trend-cell"><div class="trend-bar pos" style="width:8px;"></div></div></td>
+        <td style="font-size: 14px; color:#999;">欠員3名影響</td>
+      </tr>
+      <tr>
+        <td class="indent2">→ 活動タイプ 1410 機械加工</td>
+        <td class="num">42,000</td><td class="num">43,000</td>
+        <td class="num pos">+1,000</td><td class="num"></td>
+        <td class="num">378,000</td><td class="num">387,000</td>
+        <td class="num pos">+9,000</td><td class="num"></td>
+        <td class="num">372,000</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent2">→ 活動タイプ 1440 段取</td>
+        <td class="num">20,000</td><td class="num">20,500</td>
+        <td class="num pos">+500</td><td class="num"></td>
+        <td class="num">180,000</td><td class="num">184,500</td>
+        <td class="num pos">+4,500</td><td class="num"></td>
+        <td class="num">176,000</td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="indent">620000 間接部門費配賦</td>
+        <td class="num">45,000</td><td class="num">42,000</td>
+        <td class="num neg">△3,000</td><td class="num neg">-7.1%</td>
+        <td class="num">405,000</td><td class="num">378,000</td>
+        <td class="num neg">△27,000</td><td class="num neg">-7.1%</td>
+        <td class="num">365,000</td>
+        <td><div class="trend-cell"><div class="trend-bar neg" style="width:14px;"></div></div></td>
+        <td style="font-size: 14px; color:#999;">品管課増員影響</td>
+      </tr>
+      <tr>
+        <td class="indent">630000 工場管理費配賦</td>
+        <td class="num">43,000</td><td class="num">42,500</td>
+        <td class="num neg">△500</td><td class="num neg">-1.2%</td>
+        <td class="num">383,400</td><td class="num">382,500</td>
+        <td class="num neg">△900</td><td class="num neg">-0.2%</td>
+        <td class="num">375,000</td>
+        <td><div class="trend-cell"><div class="trend-bar neutral" style="width:3px;"></div></div></td>
+        <td></td>
+      </tr>
+      <tr class="subtotal">
+        <td>二次原価合計 Secondary Total</td>
+        <td class="num">150,000</td><td class="num">148,000</td>
+        <td class="num neg">△2,000</td><td class="num neg">-1.4%</td>
+        <td class="num">1,346,400</td><td class="num">1,332,000</td>
+        <td class="num neg">△14,400</td><td class="num neg">-1.1%</td>
+        <td class="num">1,288,000</td>
+        <td></td>
+        <td></td>
+      </tr>
+
+      <tr class="total">
+        <td>原価センタ合計 Cost Center Total</td>
+        <td class="num">234,500</td><td class="num">210,500</td>
+        <td class="num neg">△24,000</td><td class="num neg">-11.4%</td>
+        <td class="num">2,045,000</td><td class="num">1,850,000</td>
+        <td class="num neg">△195,000</td><td class="num neg">-10.5%</td>
+        <td class="num">1,795,000</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Activity Type Detail -->
+  <div class="panel">
+    <h2>活動タイプ別実績 Activity Type Detail (YTD)
+      <span class="badge badge-green">計画内</span>
+    </h2>
+    <table>
+      <tr>
+        <th>活動タイプ</th>
+        <th class="num">計画数量(h)</th>
+        <th class="num">実績数量(h)</th>
+        <th class="num">差異</th>
+        <th class="num">計画単価</th>
+        <th class="num">実際単価</th>
+        <th class="num">単価差異</th>
+      </tr>
+      <tr>
+        <td>1410 機械加工</td>
+        <td class="num">12,600</td><td class="num">12,740</td>
+        <td class="num neg">+140</td>
+        <td class="num">¥30,714</td><td class="num">¥31,820</td>
+        <td class="num neg">+¥1,106</td>
+      </tr>
+      <tr>
+        <td class="indent2" style="padding-left:18px;">原価構成内訳（計画単価）</td>
+        <td colspan="6"></td>
+      </tr>
+      <tr>
+        <td class="indent2" style="padding-left:30px;">労務費</td>
+        <td colspan="2"></td><td></td>
+        <td class="num" style="color:#888;">¥18,429 (60%)</td>
+        <td class="num" style="color:#888;">¥18,950</td>
+        <td class="num neg">+¥521</td>
+      </tr>
+      <tr>
+        <td class="indent2" style="padding-left:30px;">減価償却費</td>
+        <td colspan="2"></td><td></td>
+        <td class="num" style="color:#888;">¥9,214 (30%)</td>
+        <td class="num" style="color:#888;">¥9,214</td>
+        <td class="num">¥0</td>
+      </tr>
+      <tr>
+        <td class="indent2" style="padding-left:30px;">電力・その他</td>
+        <td colspan="2"></td><td></td>
+        <td class="num" style="color:#888;">¥3,071 (10%)</td>
+        <td class="num" style="color:#888;">¥3,656</td>
+        <td class="num neg">+¥585</td>
+      </tr>
+      <tr style="border-top: 1px solid #e2e8f0;">
+        <td>1440 段取</td>
+        <td class="num">5,200</td><td class="num">5,460</td>
+        <td class="num neg">+260</td>
+        <td class="num">¥35,481</td><td class="num">¥37,280</td>
+        <td class="num neg">+¥1,799</td>
+      </tr>
+      <tr class="subtotal">
+        <td>合計</td>
+        <td class="num">17,800</td><td class="num">18,200</td>
+        <td class="num neg">+400</td>
+        <td class="num"></td><td class="num"></td>
+        <td class="num"></td>
+      </tr>
+    </table>
+    <div class="footnote">
+      ※ 活動量は計画超（+2.2%）→ 需要増に対応<br>
+      ※ 単価差異の主因：修繕費超過による固定費率上昇<br>
+      ※ 原価構成分割：一次原価構成分割による計画単価内訳
+    </div>
+  </div>
+
+  <!-- Monthly Trend -->
+  <div class="panel">
+    <h2>月次推移 Monthly Trend (総費用 千円)</h2>
+    <table>
+      <tr>
+        <th>月</th>
+        <th class="num">実績</th>
+        <th class="num">予算</th>
+        <th class="num">差異</th>
+        <th class="num">修繕費</th>
+        <th>傾向</th>
+      </tr>
+      <tr>
+        <td>Jun</td>
+        <td class="num">215,000</td><td class="num">205,000</td>
+        <td class="num neg">△10,000</td>
+        <td class="num">22,000</td>
+        <td style="font-size: 14px;">通常</td>
+      </tr>
+      <tr>
+        <td>Jul</td>
+        <td class="num">218,000</td><td class="num">206,000</td>
+        <td class="num neg">△12,000</td>
+        <td class="num">25,000</td>
+        <td style="font-size: 14px;">通常</td>
+      </tr>
+      <tr>
+        <td>Aug</td>
+        <td class="num">210,000</td><td class="num">205,000</td>
+        <td class="num neg">△5,000</td>
+        <td class="num">20,000</td>
+        <td style="font-size: 14px;">夏季休暇</td>
+      </tr>
+      <tr>
+        <td>Sep</td>
+        <td class="num">225,000</td><td class="num">206,000</td>
+        <td class="num neg">△19,000</td>
+        <td class="num">32,000</td>
+        <td style="font-size: 14px; color:#e53e3e;">P-3号機修繕①</td>
+      </tr>
+      <tr>
+        <td>Oct</td>
+        <td class="num">232,000</td><td class="num">206,000</td>
+        <td class="num neg">△26,000</td>
+        <td class="num">38,000</td>
+        <td style="font-size: 14px; color:#e53e3e;">P-3号機修繕②</td>
+      </tr>
+      <tr>
+        <td>Nov</td>
+        <td class="num">238,000</td><td class="num">206,000</td>
+        <td class="num neg">△32,000</td>
+        <td class="num">42,000</td>
+        <td style="font-size: 14px; color:#e53e3e;">P-3+金型修繕</td>
+      </tr>
+      <tr>
+        <td>Dec</td>
+        <td class="num">228,000</td><td class="num">206,000</td>
+        <td class="num neg">△22,000</td>
+        <td class="num">35,000</td>
+        <td style="font-size: 14px; color:#e53e3e;">P-3号機修繕③</td>
+      </tr>
+      <tr>
+        <td>Jan</td>
+        <td class="num">245,000</td><td class="num">205,000</td>
+        <td class="num neg">△40,000</td>
+        <td class="num">45,000</td>
+        <td style="font-size: 14px; color:#e53e3e;">P-3大規模修繕</td>
+      </tr>
+      <tr style="background:#fff5f5;">
+        <td><strong>Feb</strong></td>
+        <td class="num"><strong>234,500</strong></td><td class="num"><strong>210,500</strong></td>
+        <td class="num neg"><strong>△24,000</strong></td>
+        <td class="num"><strong>38,500</strong></td>
+        <td style="font-size: 14px; color:#e53e3e;">修繕継続中</td>
+      </tr>
+    </table>
+    <div class="footnote">※ 9月以降P-3号機の修繕が常態化。1月の大規模修繕(45M)で延命を図るも根本解決に至らず。</div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Headcount -->
+  <div class="panel">
+    <h2>要員計画 Headcount & Personnel Cost
+      <span class="badge badge-yellow">欠員3名</span>
+    </h2>
+    <table class="hc-table">
+      <tr>
+        <th>職種 Role</th>
+        <th class="num">計画</th>
+        <th class="num">実績</th>
+        <th class="num">差</th>
+        <th class="num">人件費計画(千円)</th>
+        <th class="num">人件費実績(千円)</th>
+        <th class="num">差異</th>
+      </tr>
+      <tr>
+        <td class="name">正社員 オペレーター</td>
+        <td class="num">25</td><td class="num">24</td>
+        <td class="num neg">-1</td>
+        <td class="num">187,500</td><td class="num">182,400</td>
+        <td class="num pos">+5,100</td>
+      </tr>
+      <tr>
+        <td class="name">正社員 保全技能士</td>
+        <td class="num">5</td><td class="num">4</td>
+        <td class="num neg">-1</td>
+        <td class="num">45,000</td><td class="num">37,200</td>
+        <td class="num pos">+7,800</td>
+      </tr>
+      <tr>
+        <td class="name">正社員 リーダー</td>
+        <td class="num">3</td><td class="num">3</td>
+        <td class="num">0</td>
+        <td class="num">30,000</td><td class="num">30,600</td>
+        <td class="num neg">△600</td>
+      </tr>
+      <tr>
+        <td class="name">契約社員</td>
+        <td class="num">8</td><td class="num">7</td>
+        <td class="num neg">-1</td>
+        <td class="num">44,000</td><td class="num">39,200</td>
+        <td class="num pos">+4,800</td>
+      </tr>
+      <tr>
+        <td class="name">派遣社員</td>
+        <td class="num">4</td><td class="num">4</td>
+        <td class="num">0</td>
+        <td class="num">28,000</td><td class="num">29,400</td>
+        <td class="num neg">△1,400</td>
+      </tr>
+      <tr class="total">
+        <td>合計 Total</td>
+        <td class="num">45</td><td class="num">42</td>
+        <td class="num neg">-3</td>
+        <td class="num">334,500</td><td class="num">318,800</td>
+        <td class="num pos">+15,700</td>
+      </tr>
+    </table>
+    <div class="footnote">
+      ※ 保全技能士の欠員1名が修繕費超過の一因（外注対応に切替）<br>
+      ※ オペレーター1名は12月退職、後任採用活動中<br>
+      ※ 人件費は削減だが、欠員による外注費増（△20.4M）で相殺以上の超過
+    </div>
+  </div>
+
+  <!-- CAPEX Tracking -->
+  <div class="panel">
+    <h2>設備投資進捗 CAPEX Tracking
+      <span class="badge badge-yellow">前倒し検討中</span>
+    </h2>
+    <table>
+      <tr>
+        <th>投資案件</th>
+        <th class="num">予算(M)</th>
+        <th class="num">実績(M)</th>
+        <th class="num">進捗</th>
+        <th>ステータス</th>
+      </tr>
+      <tr>
+        <td>プレス機P-5号機 新規導入</td>
+        <td class="num">180</td><td class="num">0</td>
+        <td class="num">
+          <div class="progress-bar"><div class="progress-fill yellow" style="width:5%;">0%</div></div>
+        </td>
+        <td style="font-size: 14px;">FY2027計画 → 前倒し検討中</td>
+      </tr>
+      <tr>
+        <td>金型自動交換装置</td>
+        <td class="num">45</td><td class="num">42</td>
+        <td class="num">
+          <div class="progress-bar"><div class="progress-fill green" style="width:93%;">93%</div></div>
+        </td>
+        <td style="font-size: 14px; color:#38a169;">3月稼働開始予定</td>
+      </tr>
+      <tr>
+        <td>品質検査カメラ増設</td>
+        <td class="num">12</td><td class="num">12</td>
+        <td class="num">
+          <div class="progress-bar"><div class="progress-fill green" style="width:100%;">100%</div></div>
+        </td>
+        <td style="font-size: 14px; color:#38a169;">✅ 稼働中</td>
+      </tr>
+      <tr>
+        <td>省エネ照明LED化</td>
+        <td class="num">8</td><td class="num">6</td>
+        <td class="num">
+          <div class="progress-bar"><div class="progress-fill green" style="width:75%;">75%</div></div>
+        </td>
+        <td style="font-size: 14px;">3月完了予定</td>
+      </tr>
+      <tr>
+        <td>P-3号機 更新（前倒し案）</td>
+        <td class="num" style="color:#999;">450</td><td class="num">-</td>
+        <td class="num">
+          <div class="progress-bar"><div class="progress-fill red" style="width:3%;">申請中</div></div>
+        </td>
+        <td style="font-size: 14px; color:#c53030;">投資委員会上申予定（3月）</td>
+      </tr>
+      <tr class="subtotal">
+        <td>FY2026 合計（承認済み）</td>
+        <td class="num">245</td><td class="num">60</td>
+        <td class="num">
+          <div class="progress-bar"><div class="progress-fill green" style="width:24%;">24%</div></div>
+        </td>
+        <td style="font-size: 14px;">計画通り進捗</td>
+      </tr>
+    </table>
+    <div class="footnote">
+      ※ P-3号機更新450M：修繕費年間120M削減見込み → 3.75年で回収<br>
+      ※ 前倒しが承認されれば、FY2026下期に発注 → FY2027 Q2稼働
+    </div>
+  </div>
+</div>
+
+<!-- Commentary -->
+<div class="grid-2" style="margin-top:0;">
+  <div class="panel">
+    <h2>課長コメント・アクション</h2>
+    <ul class="comment-list">
+      <li class="issue">
+        <span class="comment-tag issue">最重要課題</span>
+        P-3号機プレス（1998年導入、稼働28年目）が限界。9月から毎月修繕が発生し、YTDで修繕費218Mを投下。1月の大規模修繕でも根本解決に至らず。3月以降も月30-40Mの修繕費が見込まれる。
+      </li>
+      <li class="issue">
+        <span class="comment-tag issue">連鎖影響</span>
+        P-3停止時に外注加工へ切替（外注費+20.4M）。さらに不良率が2.5%→3.8%に悪化（P-3の精度低下が原因）。材料ロスと手直し工数も増加中。修繕費だけでなく、外注費・不良・ロスの連鎖コストを含めると推定△160M超の影響。
+      </li>
+      <li class="action">
+        <span class="comment-tag action">アクション</span>
+        P-3号機更新の投資申請書を作成中。概算450M。年間修繕費120M + 外注費30M + 不良ロス20M = 年間170M削減。ROI 2.6年。3月の投資委員会で上申予定。Layer 2の事業部長レポートにも記載済み。
+      </li>
+      <li class="info">
+        <span class="comment-tag info">人員</span>
+        保全技能士の欠員が修繕の外注依存に直結。社内対応できれば修繕費の20-30%削減可能。採用活動中だが、プレス保全のベテランは市場に少なく苦戦中。
+      </li>
+      <li class="positive">
+        <span class="comment-tag positive">好材料</span>
+        金型自動交換装置が3月稼働開始。段取時間の30%短縮を見込む。活動タイプ1440（段取）の効率改善が期待できる。品質検査カメラも稼働中で、不良の早期検出に貢献開始。
+      </li>
+    </ul>
+  </div>
+
+  <!-- Variance Summary & Next Actions -->
+  <div class="panel">
+    <h2>差異要因サマリー＆次月見通し</h2>
+    <table style="margin-bottom:12px;">
+      <tr>
+        <th>差異要因</th>
+        <th class="num">YTD影響額</th>
+        <th class="num">構成比</th>
+        <th>対策状況</th>
+      </tr>
+      <tr>
+        <td>修繕費超過（P-3号機中心）</td>
+        <td class="num neg">△115,000</td>
+        <td class="num">59%</td>
+        <td style="font-size: 14px; color:#c53030;">未解決 → CAPEX前倒し申請</td>
+      </tr>
+      <tr>
+        <td>外注加工費増（P-3停止代替）</td>
+        <td class="num neg">△20,400</td>
+        <td class="num">10%</td>
+        <td style="font-size: 14px; color:#c53030;">P-3依存 → CAPEX連動</td>
+      </tr>
+      <tr>
+        <td>間接部門費配賦増</td>
+        <td class="num neg">△27,000</td>
+        <td class="num">14%</td>
+        <td style="font-size: 14px; color:#999;">管理不能（品管課増員による）</td>
+      </tr>
+      <tr>
+        <td>消耗品費増（金型消耗）</td>
+        <td class="num neg">△5,300</td>
+        <td class="num">3%</td>
+        <td style="font-size: 14px; color:#d69e2e;">金型自動交換で改善見込</td>
+      </tr>
+      <tr>
+        <td>人件費減（欠員3名）</td>
+        <td class="num pos">+15,700</td>
+        <td class="num">-8%</td>
+        <td style="font-size: 14px; color:#999;">採用活動中</td>
+      </tr>
+      <tr>
+        <td>電力費・その他削減</td>
+        <td class="num pos">+4,600</td>
+        <td class="num">-2%</td>
+        <td style="font-size: 14px; color:#38a169;">LED化効果</td>
+      </tr>
+      <tr class="total">
+        <td>原価センタ差異合計</td>
+        <td class="num neg">△195,000</td>
+        <td class="num">100%</td>
+        <td></td>
+      </tr>
+    </table>
+
+    <div style="font-size: 16px; font-weight:600; margin-bottom:6px; color:#2d3748;">次月（3月）見通し</div>
+    <table>
+      <tr>
+        <th>項目</th>
+        <th class="num">見込み</th>
+        <th>備考</th>
+      </tr>
+      <tr>
+        <td>修繕費</td>
+        <td class="num neg">35,000千円</td>
+        <td style="font-size: 14px;">P-3継続修繕</td>
+      </tr>
+      <tr>
+        <td>外注加工費</td>
+        <td class="num neg">14,000千円</td>
+        <td style="font-size: 14px;">P-3停止頻度による</td>
+      </tr>
+      <tr>
+        <td>段取時間</td>
+        <td class="num pos">▼30%</td>
+        <td style="font-size: 14px;">金型自動交換稼働</td>
+      </tr>
+      <tr>
+        <td>不良率</td>
+        <td class="num">3.5%（目標）</td>
+        <td style="font-size: 14px;">検査カメラ効果</td>
+      </tr>
+    </table>
+    <div class="footnote" style="margin-top:8px;">
+      ※ P-3問題が解決しない限り、月次△20-30Mの超過が継続する見込み<br>
+      ※ FY2026通期着地：予算比 △260-280M超過の見通し
+    </div>
+  </div>
+</div>
+
+<div class="footnote" style="margin-top:6px;">Confidential 社外秘 | CC4110 車載製造1課 | 山田太郎 課長作成 | 2026年3月5日 | 次回レビュー：3月度原価会議</div>
+
+</div>
+</body>
+</html>
